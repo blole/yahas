@@ -8,6 +8,7 @@ import java.net.SocketException;
 
 import common.Action;
 import common.Constants;
+import common.Convert;
 import common.TimeoutHashSet;
 
 public class HeartBeatReceiver implements Runnable {
@@ -53,7 +54,8 @@ public class HeartBeatReceiver implements Runnable {
 				System.err.printf("Recieved a HeartBeat with the wrong length: %d\n", packet.getLength());
 			else {
 				byte[] b = packet.getData();
-				int dataNodeID = (b[0]<<24) + (b[1]<<16) + (b[2]<<8) + (b[3]);
+				
+				int dataNodeID = Convert.byteArrayToInt(b);
 				DataNodeImage dataNodeImage = new DataNodeImage(dataNodeID, (InetSocketAddress)packet.getSocketAddress());
 				
 				if (connectedDataNodes.addOrRefresh(dataNodeImage))

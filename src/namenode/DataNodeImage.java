@@ -1,18 +1,24 @@
 package namenode;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
+import java.util.HashSet;
 import java.util.Set;
 
 import common.Constants;
+import common.Convert;
+import common.Packet;
+import common.PacketType;
 import common.YSocket;
+import common.exceptions.InvalidPacketType;
+import common.exceptions.UnexpectedPacketType;
 
 public class DataNodeImage {
 	private YSocket backSocket = null;
 	public final InetSocketAddress receivedHearbeatSocketAddress;
 	public final int id;
+	public int availableSpace;
 
 	public DataNodeImage(int dataNodeID, InetSocketAddress socketAddress) {
 		this.receivedHearbeatSocketAddress = socketAddress;
@@ -37,6 +43,7 @@ public class DataNodeImage {
 	
 	/**
 	 * If called once more after failing to establish a connection, it tries again.
+	 * TODO: Blocks until the previous transaction is done.
 	 * 
 	 * @return A socket connected to the DataNode, or null if an connection couldn't be established.
 	 */
@@ -56,13 +63,23 @@ public class DataNodeImage {
 		return 997 * id ^ 991 * receivedHearbeatSocketAddress.hashCode();
 	}
 	
+	@Override
 	public String toString() {
 		return String.format("[DataNodeImage id=%d addr=%s]", id, receivedHearbeatSocketAddress);
 	}
 
-	public Set<BlockImage> getBlocks() throws IOException {
+	public Set<BlockImage> getBlocks() throws IOException, InvalidPacketType, UnexpectedPacketType {
 		YSocket backSocket = createOrGetBackSocket();
-		backSocket.send("hello, I'm the NameNode");
-		return null;
+		backSocket.send(Packet.RequestBlockReport);
+		Packet blockReportPacket = backSocket.receivePacket(PacketType.BLOCK_REPORT);
+		
+		if (blockReportPacket.message.length % 8 != 0)
+			throw new IOException("Received BlockReportPacket's length was not a multiple of 8.");
+		
+		Set<BlockImage> set = new HashSet<>();
+		for (int i=0; i<blockReportPacket.message.length; i+=8) {
+			set.add(new BlockImage(Convert.byteArrayToLong(blockReportPacket.message, i)));
+		}
+		return set;
 	}
 }

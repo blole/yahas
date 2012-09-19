@@ -1,11 +1,12 @@
 package datanode;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+
+import common.Convert;
 
 public class HeartBeatSender implements Runnable {
 	
@@ -24,12 +25,7 @@ public class HeartBeatSender implements Runnable {
 
 	@Override
 	public void run() {
-		byte[] buf = new byte[] {
-				(byte) (id>>24),
-				(byte) (id>>16),
-				(byte) (id>>8),
-				(byte) (id),
-		};
+		byte[] buf = Convert.toByteArray(id);
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
 		packet.setSocketAddress(dataNodeHeartBeatSocketAddress);
 		

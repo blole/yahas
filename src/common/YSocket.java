@@ -6,9 +6,16 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 
+import common.exceptions.InvalidPacketType;
+import common.exceptions.UnexpectedPacketType;
+
 public class YSocket {
 	private Socket socket;
-
+	
+	
+	
+	
+	
 	public YSocket(Socket socket) {
 		this.socket = socket;
 	}
@@ -20,8 +27,27 @@ public class YSocket {
 	public YSocket(InetAddress address, int port) throws IOException {
 		this.socket = new Socket(address, port);
 	}
-
-	public String receiveString() throws IOException {
+	
+	
+	
+	
+	
+	public String receiveString() throws IOException, InvalidPacketType, UnexpectedPacketType {
+		Packet packet = receivePacket(PacketType.TEXT);
+		return new String(packet.message);
+	}
+	
+	public Packet receivePacket(PacketType expectedType) throws IOException, InvalidPacketType, UnexpectedPacketType {
+		Packet packet = receivePacket();
+		if (packet.type != expectedType)
+			throw new UnexpectedPacketType("Unexpected "+PacketType.class+
+					" received, expected "+expectedType+", got "+packet.type);
+		else
+			return packet;
+	}
+	
+	public Packet receivePacket() throws IOException, InvalidPacketType {
+		PacketType type = PacketType.decode(socket.getInputStream().read());
 		int len = socket.getInputStream().read();
 		byte[] message = new byte[len];
 		for (int off=0; off<message.length; ) {	
@@ -29,17 +55,34 @@ public class YSocket {
 			len -= off;
 		}
 		
-		return new String(message);
+		return new Packet(type, message);
 	}
 	
+	
+	
+	
+	
 	public void send(String message) throws IOException {
-		byte[] a = message.getBytes();
-		socket.getOutputStream().write(a.length);
-		socket.getOutputStream().write(a);
+		send(new Packet(PacketType.TEXT, message.getBytes()));
 	}
 
-	public SocketAddress getRemoteSocketAddress() {
-		return socket.getRemoteSocketAddress();
+	/**
+	 * TODO: Does not work on packets longer than 255 bytes...
+	 * @param packet
+	 * @throws IOException 
+	 */
+	public void send(Packet packet) throws IOException {
+		socket.getOutputStream().write(packet.type.encode());
+		socket.getOutputStream().write(packet.message.length);
+		socket.getOutputStream().write(packet.message);
+	}
+
+	
+	
+	
+	
+	public void close() throws IOException {
+		socket.close();
 	}
 	
 	public void closeWithoutException() {
@@ -51,7 +94,7 @@ public class YSocket {
 		}
 	}
 	
-	public void close() throws IOException {
-		socket.close();
+	public SocketAddress getRemoteSocketAddress() {
+		return socket.getRemoteSocketAddress();
 	}
 }

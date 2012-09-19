@@ -8,6 +8,8 @@ import common.Constants;
 
 
 public class DataNode {
+	private int id;
+	
 	public DataNode(int dataNodePort, int incomingPort) {
 		InetSocketAddress nameNodeHeartBeatSocketAddress =
 				new InetSocketAddress("localhost", Constants.DEFAULT_NAME_NODE_PORT);
@@ -23,7 +25,7 @@ public class DataNode {
 			System.exit(1);
 		}
 		try {
-			heartBeatSender = new HeartBeatSender(nameNodeHeartBeatSocketAddress, interval_ms); 
+			heartBeatSender = new HeartBeatSender(nameNodeHeartBeatSocketAddress, interval_ms);
 		} catch (SocketException e) {
 			System.err.printf("Could not start sending HeartBeats: %s\n", e.getLocalizedMessage());
 			System.exit(1);

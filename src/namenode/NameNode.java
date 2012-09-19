@@ -1,11 +1,11 @@
 package namenode;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.util.Set;
 
 import common.Constants;
-import common.YSocket;
+import common.exceptions.InvalidPacketType;
+import common.exceptions.UnexpectedPacketType;
 
 public class NameNode {
 	public NameNode(int incomingPort, int heartBeatPort) {
@@ -20,6 +20,12 @@ public class NameNode {
 		try {
 			blocks = dataNodeImage.getBlocks();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InvalidPacketType e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnexpectedPacketType e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

@@ -1,16 +1,17 @@
 package common;
 
 public class Packet {
-	public enum PacketType {
-		REPLICATION_INITIATION(20),
-		REPLICATION_ORDER(100);
-		
-		private PacketType(int id) {
-			
-		}
+	public static Packet RequestBlockReport = new Packet(PacketType.REQUEST_BLOCK_REPORT);
+	
+	public final PacketType type;
+	public final byte[] message;
+	
+	public Packet(PacketType type) {
+		this(type, new byte[0]);
 	}
 	
-	public Packet (byte[] message) {
-		
+	public Packet(PacketType type, byte[] message) {
+		this.type = type;
+		this.message = message;
 	}
 }

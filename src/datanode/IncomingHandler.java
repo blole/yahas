@@ -1,7 +1,10 @@
 package datanode;
 
 import java.io.IOException;
+import java.util.Set;
 
+import common.Packet;
+import common.PacketType;
 import common.YSocket;
 
 public class IncomingHandler implements Runnable {
@@ -16,18 +19,31 @@ public class IncomingHandler implements Runnable {
 		System.out.printf("[%s] Starting to serve client.\n", backSocket.getRemoteSocketAddress());
 		
 		try {
-			backSocket.send("hello");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		try {
+			Packet packet = backSocket.receivePacket();
+			switch (packet.type) {
+			case REQUEST_BLOCK_REPORT:
+				backSocket.send(getBlockReportPacket());
+				break;
+			}
 			System.out.println(backSocket.receiveString());
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
 		backSocket.closeWithoutException();
 		System.out.printf("[%s] Finished serving client.\n", backSocket.getRemoteSocketAddress());
 	}
+
+	private Packet getBlockReportPacket() {
+//		Set<BlockImage> blocks = getBlockReport();
+//		new Packet(PacketType.BLOCK_REPORT, )
+		return null;
+	}
+
+//	private Set<BlockImage> getBlockReport() {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
 }

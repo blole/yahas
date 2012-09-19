@@ -1,16 +1,9 @@
 package client;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketException;
 
 import common.YSocket;
-
-import datanode.IncomingHandler;
 
 public class Client {
 	private static final int DEFAULT_PORT = 1618;

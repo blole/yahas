@@ -15,12 +15,12 @@ public class HeartBeatSender implements Runnable {
 	private long interval_ms;
 	private int id;
 
-	public HeartBeatSender(SocketAddress dataNodeHeartBeatSocketAddress, long interval_ms) throws SocketException {
+	public HeartBeatSender(SocketAddress dataNodeHeartBeatSocketAddress, long interval_ms, int id) throws SocketException {
 		dataNodeHeartBeatSocket = new DatagramSocket();
 		
 		this.dataNodeHeartBeatSocketAddress = dataNodeHeartBeatSocketAddress;
 		this.interval_ms = interval_ms;
-		this.id = 58;
+		this.id = id;
 	}
 
 	@Override
@@ -40,6 +40,10 @@ public class HeartBeatSender implements Runnable {
 				Thread.sleep(interval_ms);
 			} catch (InterruptedException e) {}
 		}
+	}
+
+	public long getInterval() {
+		return interval_ms;
 	}
 
 }

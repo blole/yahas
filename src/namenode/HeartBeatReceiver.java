@@ -5,7 +5,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
-
 import common.Action;
 import common.Constants;
 import common.Convert;
@@ -62,5 +61,9 @@ public class HeartBeatReceiver implements Runnable {
 					reportBackTo.dataNodeConnected(dataNodeImage);
 			}
 		}
+	}
+
+	public int getPort() {
+		return incomingHeartBeatSocket.getLocalPort();
 	}
 }

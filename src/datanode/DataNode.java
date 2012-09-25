@@ -1,57 +1,83 @@
 package datanode;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.SocketException;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 
+import common.Block;
+import common.BlockInterface;
 import common.Constants;
+import common.RMIHelper;
 
 
-public class DataNode {
-	private int id;
+public class DataNode implements DataNodeInterface {
+	public final int id;
+	private HeartBeatSender heartBeatSender;
 	
-	public DataNode(int dataNodePort, int incomingPort) {
-		InetSocketAddress nameNodeHeartBeatSocketAddress =
-				new InetSocketAddress("localhost", Constants.DEFAULT_NAME_NODE_PORT);
-		long interval_ms = Constants.DEFAULT_HEARTBEAT_INTERVAL_MS;
-		
-		IncomingForker incomingForker = null;
-		HeartBeatSender heartBeatSender = null;
+	public DataNode(int id, int dataNodePort, int heartBeatPort, InetSocketAddress nameNodeHeartBeatSocketAddress) {
+		this.id = id;
 		
 		try {
-			incomingForker = new IncomingForker(incomingPort);
-		} catch (IOException e) {
-			System.err.printf("Could not start listening on port %d: %s\n", incomingPort, e.getLocalizedMessage());
-			System.exit(1);
-		}
-		try {
-			heartBeatSender = new HeartBeatSender(nameNodeHeartBeatSocketAddress, interval_ms);
+			heartBeatSender = new HeartBeatSender(nameNodeHeartBeatSocketAddress, Constants.DEFAULT_HEARTBEAT_INTERVAL_MS, id);
 		} catch (SocketException e) {
 			System.err.printf("Could not start sending HeartBeats: %s\n", e.getLocalizedMessage());
 			System.exit(1);
 		}
 		
-		System.out.printf("Listening on port %d\n", incomingPort);
-		System.out.printf("Sending HeartBeats every %d ms\n", interval_ms);
-		System.out.println();
+//		IncomingForker incomingForker = null;
+//		try {
+//			incomingForker = new IncomingForker(dataNodePort);
+//		} catch (IOException e) {
+//			System.err.printf("Could not start listening on port %d: %s\n", dataNodePort, e.getLocalizedMessage());
+//			System.exit(1);
+//		}
 		
-		new Thread(incomingForker).start();
+//		System.out.printf("Listening on port %d\n", dataNodePort);
+//		new Thread(incomingForker).start();
+	}
+	
+	public void start() {
 		new Thread(heartBeatSender).start();
+		System.out.printf("Sending HeartBeats every %d ms\n", heartBeatSender.getInterval());
 	}
 
+	@Override
+	public void receiveMessage(String s) throws RemoteException {
+		System.out.println(s);
+	}
+
+	@Override
+	public BlockInterface createBlock(long id) throws RemoteException {
+		return (BlockInterface) UnicastRemoteObject.exportObject(new Block(id), 0);
+	}
+	
+	
+	
+	
+	
 	public static void main(String[] args) {
-		int port = Constants.DEFAULT_DATA_NODE_PORT;
+		int heartBeatPort = Constants.DEFAULT_NAME_NODE_HEARTBEAT_PORT;
+		int dataNodePort = Constants.DEFAULT_DATA_NODE_PORT;
+		int id = 0;
+		InetSocketAddress nameNodeHeartBeatSocketAddress =
+				new InetSocketAddress("localhost", Constants.DEFAULT_NAME_NODE_HEARTBEAT_PORT);
 		
-		if (args.length >= 2) {
-			try {
-				port = Integer.valueOf(args[1]);
-			}
-			catch (NumberFormatException e) {
-				System.out.println("malformated port specification, exiting");
-				System.exit(1);
-			}
+		RMIHelper.maybeStartSecurityManager();
+		RMIHelper.makeSureRegistryIsStarted(dataNodePort);
+		
+		DataNode dataNode = new DataNode(id, dataNodePort, heartBeatPort, nameNodeHeartBeatSocketAddress);
+		
+		try {
+			DataNodeInterface stub = (DataNodeInterface) UnicastRemoteObject.exportObject(dataNode, 0);
+			Naming.rebind("DataNode", stub);
+		} catch (RemoteException | MalformedURLException e) {
+		    System.err.println("Server exception: " + e);
+			System.exit(1);
 		}
 		
-		new DataNode(port, port);
+		dataNode.start();
 	}
 }

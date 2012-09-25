@@ -1,8 +1,11 @@
 package namenode;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,6 +16,7 @@ import common.PacketType;
 import common.YSocket;
 import common.exceptions.InvalidPacketType;
 import common.exceptions.UnexpectedPacketType;
+import datanode.DataNodeInterface;
 
 public class DataNodeImage {
 	private YSocket backSocket = null;
@@ -65,7 +69,7 @@ public class DataNodeImage {
 	
 	@Override
 	public String toString() {
-		return String.format("[DataNodeImage id=%d addr=%s]", id, receivedHearbeatSocketAddress);
+		return String.format("[DataNodeImage %s]", getRMIAddress());
 	}
 
 	public Set<BlockImage> getBlocks() throws IOException, InvalidPacketType, UnexpectedPacketType {
@@ -81,5 +85,13 @@ public class DataNodeImage {
 			set.add(new BlockImage(Convert.byteArrayToLong(blockReportPacket.message, i)));
 		}
 		return set;
+	}
+	
+	public String getRMIAddress() {
+		return 	"//"+receivedHearbeatSocketAddress.getHostString()+"/DataNode";//+id;
+	}
+
+	public DataNodeInterface getStub() throws MalformedURLException, RemoteException, NotBoundException {
+		return (DataNodeInterface) Naming.lookup(getRMIAddress());
 	}
 }

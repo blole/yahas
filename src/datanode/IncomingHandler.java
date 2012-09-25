@@ -1,10 +1,7 @@
 package datanode;
 
 import java.io.IOException;
-import java.util.Set;
-
 import common.Packet;
-import common.PacketType;
 import common.YSocket;
 
 public class IncomingHandler implements Runnable {

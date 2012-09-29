@@ -7,13 +7,13 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-import common.Block;
-import common.BlockInterface;
 import common.Constants;
 import common.RMIHelper;
+import common.protocols.ClientDataNodeProtocol;
+import common.protocols.RemoteBlock;
 
 
-public class DataNode implements DataNodeInterface {
+public class DataNode implements ClientDataNodeProtocol {
 	public final int id;
 	private HeartBeatSender heartBeatSender;
 	
@@ -26,17 +26,6 @@ public class DataNode implements DataNodeInterface {
 			System.err.printf("Could not start sending HeartBeats: %s\n", e.getLocalizedMessage());
 			System.exit(1);
 		}
-		
-//		IncomingForker incomingForker = null;
-//		try {
-//			incomingForker = new IncomingForker(dataNodePort);
-//		} catch (IOException e) {
-//			System.err.printf("Could not start listening on port %d: %s\n", dataNodePort, e.getLocalizedMessage());
-//			System.exit(1);
-//		}
-		
-//		System.out.printf("Listening on port %d\n", dataNodePort);
-//		new Thread(incomingForker).start();
 	}
 	
 	public void start() {
@@ -45,13 +34,8 @@ public class DataNode implements DataNodeInterface {
 	}
 
 	@Override
-	public void receiveMessage(String s) throws RemoteException {
-		System.out.println(s);
-	}
-
-	@Override
-	public BlockInterface createBlock(long id) throws RemoteException {
-		return (BlockInterface) UnicastRemoteObject.exportObject(new Block(id), 0);
+	public RemoteBlock createBlock(long id) throws RemoteException {
+		return (RemoteBlock) UnicastRemoteObject.exportObject(new Block(id), 0);
 	}
 	
 	
@@ -71,13 +55,19 @@ public class DataNode implements DataNodeInterface {
 		DataNode dataNode = new DataNode(id, dataNodePort, heartBeatPort, nameNodeHeartBeatSocketAddress);
 		
 		try {
-			DataNodeInterface stub = (DataNodeInterface) UnicastRemoteObject.exportObject(dataNode, 0);
-			Naming.rebind("DataNode", stub);
+			ClientDataNodeProtocol stub = (ClientDataNodeProtocol) UnicastRemoteObject.exportObject(dataNode, 0);
+			Naming.rebind("DataNode"+id, stub);
 		} catch (RemoteException | MalformedURLException e) {
 		    System.err.println("Server exception: " + e);
 			System.exit(1);
 		}
 		
 		dataNode.start();
+	}
+
+	@Override
+	public RemoteBlock getBlock(long blockID) throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

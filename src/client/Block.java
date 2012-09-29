@@ -1,17 +1,13 @@
-package common;
+package client;
 
-import java.rmi.RemoteException;
-
-
-public class Block implements BlockInterface {
+public class Block {
 	private long id;
 	
 	public Block(long id) {
 		this.id = id;
 	}
 	
-	@Override
-	public void write(String s) throws RemoteException {
+	public void write(String s) {
 		System.out.printf("%s wrote %s\n", this, s);
 	}
 	

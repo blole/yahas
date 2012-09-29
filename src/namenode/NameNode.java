@@ -4,20 +4,29 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.Registry;
+import java.rmi.registry.LocateRegistry;
 import java.rmi.server.RemoteServer;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashSet;
+import java.util.List;
+import java.util.concurrent.locks.Lock;
 
-import rmi.interfaces.NameNodeInterface;
+import client.File;
+
 
 import common.Constants;
 import common.RMIHelper;
-import datanode.DataNodeInterface;
+import common.protocols.ClientDataNodeProtocol;
+import common.protocols.ClientNameNodeProtocol;
+import common.protocols.NameNodeDataNodeProtocol;
+import common.protocols.RemoteDataNode;
+import common.protocols.RemoteDir;
+import common.protocols.RemoteFile;
+import common.protocols.RemoteNameNode;
 
-public class NameNode extends RemoteServer implements NameNodeInterface {
+public class NameNode extends RemoteServer implements RemoteNameNode {
 	private static final long serialVersionUID = -8076847401609606850L;
-	private HashSet<DataNodeInterface> connectedDataNodes = new HashSet<>();
+	private HashSet<ClientDataNodeProtocol> connectedDataNodes = new HashSet<>();
 	private HeartBeatReceiver heartBeatReceiver;
 
 	public NameNode(int heartBeatPort) {
@@ -36,14 +45,46 @@ public class NameNode extends RemoteServer implements NameNodeInterface {
 	
 	
 	@Override
-	public void receiveMessage(String s) throws RemoteException {
-		System.out.println(s);
+	public RemoteFile getFile(String name) throws RemoteException {
+		return createFile(name, (byte) 3);
 	}
-	
+
 	@Override
-	public HashSet<DataNodeInterface> getDataNodes() throws RemoteException {
-		return connectedDataNodes;
+	public RemoteFile createFile(String name, byte replicationFactor) throws RemoteException {
+		return (RemoteFile) UnicastRemoteObject.exportObject(new NameNodeFile(this, name, replicationFactor), 0);
 	}
+
+	@Override
+	public RemoteDir createDir(String name, boolean createParentsAsNeeded) throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public RemoteDir getDir(String name) throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public int register(NameNodeDataNodeProtocol dataNode) throws RemoteException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void blockReceived(long blockId) throws RemoteException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public List<ClientDataNodeProtocol> getDataNodes() throws RemoteException {
+		return null;
+	}
+
+	
+	
 	
 	public void dataNodeConnected(DataNodeImage dataNodeImage) {
 		try {
@@ -63,9 +104,8 @@ public class NameNode extends RemoteServer implements NameNodeInterface {
 	}
 
 	public void dataNodeDisconnected(DataNodeImage dataNodeImage) {
-		System.out.printf("%s disconnected   NOT YET IMPLEMENTED\n", dataNodeImage);
-//		if (connectedDataNodes.remove(dataNodeImage))
-//			System.out.printf("DataNode disconnected: %s\n", dataNodeImage);
+		if (connectedDataNodes.remove(dataNodeImage.getStubOrNull()))
+			System.out.printf("%s disconnected\n", dataNodeImage);
 	}
 	
 	
@@ -80,7 +120,7 @@ public class NameNode extends RemoteServer implements NameNodeInterface {
 		
 		NameNode nameNode = new NameNode(Constants.DEFAULT_NAME_NODE_HEARTBEAT_PORT);
 		try {
-			NameNodeInterface stub = (NameNodeInterface) UnicastRemoteObject.exportObject(nameNode, 0);
+			ClientNameNodeProtocol stub = (ClientNameNodeProtocol) UnicastRemoteObject.exportObject(nameNode, 0);
 			Naming.rebind("NameNode", stub);
 		} catch (RemoteException | MalformedURLException e) {
 		    System.err.println("Server exception: " + e.getLocalizedMessage().split(";")[0]);
@@ -89,5 +129,10 @@ public class NameNode extends RemoteServer implements NameNodeInterface {
 		}
 		
 		nameNode.start();
+	}
+
+	public long getNewBlockID() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

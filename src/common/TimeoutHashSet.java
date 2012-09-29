@@ -12,7 +12,7 @@ public class TimeoutHashSet<K> {
 	}
 
 	/**
-	 * Adds an element to the set.
+	 * Adds an element to the set, or if it is already in the set, renew that elements timeout.
 	 * 
 	 * @param element
 	 * @return True if the set didn't already contain the element, that is: it was added

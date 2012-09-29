@@ -5,22 +5,36 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-import common.RMIHelper;
+import namenode.NameNodeFile;
 
-import rmi.interfaces.NameNodeInterface;
+import common.RMIHelper;
+import common.protocols.ClientDataNodeProtocol;
+import common.protocols.ClientNameNodeProtocol;
+import common.protocols.RemoteFile;
+
 
 public class Client {
-	private NameNodeInterface nameNode;
+	private ClientNameNodeProtocol nameNode;
 	
-	public Client(NameNodeInterface nameNode) {
+	public Client(ClientNameNodeProtocol nameNode) {
 		this.nameNode = nameNode;
 		
 		try {
-			nameNode.receiveMessage("wooooo");
-			System.out.println(nameNode.getDataNodes());
+			File file = new File(nameNode.createFile("lol", (byte) 3));
+			file.delete();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
+		
+//		try {
+//			for (DataNodeInterface dataNode : nameNode.getDataNodes()) {
+//				try {
+//					dataNode.receiveMessage("lulz");
+//				} catch (RemoteException e) {}
+//			}
+//		} catch (RemoteException e) {
+//			e.printStackTrace();
+//		}
 	}
 	
 	
@@ -30,12 +44,13 @@ public class Client {
 	public static void main(String args[]) {
 		RMIHelper.maybeStartSecurityManager();
 		
-		NameNodeInterface nameNode = null;
+		ClientNameNodeProtocol nameNode = null;
 		
 		try {
-			nameNode = (NameNodeInterface) Naming.lookup("//localhost/NameNode");
+			nameNode = (ClientNameNodeProtocol) Naming.lookup("//localhost/NameNode");
 		} catch (MalformedURLException | RemoteException | NotBoundException e) {
 			e.printStackTrace();
+			System.exit(1);
 		}
 		
 		new Client(nameNode);

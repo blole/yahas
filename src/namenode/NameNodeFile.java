@@ -1,6 +1,7 @@
 package namenode;
 
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 
 import common.LocatedBlock;
@@ -8,9 +9,11 @@ import common.protocols.RemoteFile;
 
 public class NameNodeFile implements RemoteFile {
 	private NameNode nameNode;
+	private String name;
 	
 	public NameNodeFile(NameNode nameNode, String name, byte replicationFactor) {
 		this.nameNode = nameNode;
+		this.name = name;
 	}
 
 	@Override
@@ -49,5 +52,17 @@ public class NameNodeFile implements RemoteFile {
 	public void move(String filePathAndName) throws RemoteException {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	
+	
+	
+	
+	public RemoteFile getStub() throws RemoteException {
+		return (RemoteFile) UnicastRemoteObject.exportObject(this, 0);
+	}
+
+	public String getName() {
+		return name;
 	}
 }

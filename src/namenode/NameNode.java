@@ -4,22 +4,16 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
 import java.rmi.server.RemoteServer;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-
-import client.File;
-
-
 import common.Constants;
 import common.RMIHelper;
+import common.exceptions.RemoteFileNotFoundException;
 import common.protocols.ClientDataNodeProtocol;
 import common.protocols.ClientNameNodeProtocol;
 import common.protocols.NameNodeDataNodeProtocol;
-import common.protocols.RemoteDataNode;
 import common.protocols.RemoteDir;
 import common.protocols.RemoteFile;
 import common.protocols.RemoteNameNode;
@@ -28,6 +22,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	private static final long serialVersionUID = -8076847401609606850L;
 	private HashSet<ClientDataNodeProtocol> connectedDataNodes = new HashSet<>();
 	private HeartBeatReceiver heartBeatReceiver;
+	private NameNodeDir root;
 
 	public NameNode(int heartBeatPort) {
 		heartBeatReceiver = new HeartBeatReceiver(this, heartBeatPort);
@@ -45,25 +40,30 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	
 	@Override
-	public RemoteFile getFile(String name) throws RemoteException {
-		return createFile(name, (byte) 3);
+	public RemoteFile getFile(String path) throws RemoteException {
+		NameNodeFile file = root.getFile(path);
+		if (file == null)
+			throw new RemoteFileNotFoundException();
+		else
+			return file.getStub();
 	}
 
 	@Override
 	public RemoteFile createFile(String name, byte replicationFactor) throws RemoteException {
-		return (RemoteFile) UnicastRemoteObject.exportObject(new NameNodeFile(this, name, replicationFactor), 0);
+		NameNodeFile file = new NameNodeFile(this, name, replicationFactor);
+		root.addFile(file);
+		return file.getStub();
 	}
 
 	@Override
-	public RemoteDir createDir(String name, boolean createParentsAsNeeded) throws RemoteException {
-		// TODO Auto-generated method stub
+	public RemoteDir createDir(String path, boolean createParentsAsNeeded) throws RemoteException {
+		root.addDir(path, createParentsAsNeeded);
 		return null;
 	}
 
 	@Override
-	public RemoteDir getDir(String name) throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+	public RemoteDir getDir(String path) throws RemoteException {
+		return root.getDir(path).getStub();
 	}
 
 	@Override

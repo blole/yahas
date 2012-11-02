@@ -2,6 +2,7 @@ package namenode;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.List;
 
 import common.LocatedBlock;
@@ -10,10 +11,13 @@ import common.protocols.RemoteFile;
 public class NameNodeFile implements RemoteFile {
 	private NameNode nameNode;
 	private String name;
+	private final ArrayList<LocatedBlock> blocks = new ArrayList<>();
+	private byte replicationFactor;
 	
 	public NameNodeFile(NameNode nameNode, String name, byte replicationFactor) {
 		this.nameNode = nameNode;
 		this.name = name;
+		this.replicationFactor = replicationFactor;
 	}
 
 	@Override
@@ -27,13 +31,27 @@ public class NameNodeFile implements RemoteFile {
 
 	@Override
 	public LocatedBlock addBlock() throws RemoteException {
-		return new LocatedBlock(nameNode.getNewBlockID(), null);
+		LocatedBlock block = new LocatedBlock(nameNode.getNewBlockID(),
+				nameNode.getAppropriateDataNodes(replicationFactor));
+		blocks.add(block);
+		return block;
 	}
 
 	@Override
 	public LocatedBlock getLastBlock() throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+		return blocks.get(blocks.size()-1);
+	}
+	
+	/**
+	 * Will return the last block. If the current last block is full or
+	 * if the file doesn't have any blocks yet, it adds a new one first.
+	 */
+	@Override
+	public LocatedBlock getWritingBlock() throws RemoteException {
+		if (blocks.size() != 0 && getLastBlock().getBytesLeft() != 0)
+			return getLastBlock();
+		else
+			return addBlock();
 	}
 
 	@Override

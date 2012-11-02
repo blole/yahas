@@ -1,8 +1,7 @@
 package common.exceptions;
 
-import java.rmi.RemoteException;
 
-public class RemoteFileNotFoundException extends RemoteException {
+public class RemoteFileNotFoundException extends Exception {
 	private static final long serialVersionUID = 8602961418666946909L;
 
 }

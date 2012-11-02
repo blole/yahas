@@ -44,16 +44,20 @@ public class Convert {
 	 * @return The int-decoding of the four bytes in b, from offset to offset+3
 	 */
 	public static int byteArrayToInt(byte[] b, int offset) {
-		return  b[offset+0]      +
-				(b[offset+1]<<8)  +
-				(b[offset+2]<<16) +
-				(b[offset+3]<<24);
+		return  unsigned(b[offset+0])      +
+				(unsigned(b[offset+1])<<8)  +
+				(unsigned(b[offset+2])<<16) +
+				(unsigned(b[offset+3])<<24);
 	}
 	
 	
 	
 	
 	
+	private static int unsigned(byte b) {
+		return (b+256)%256;
+	}
+
 	/**
 	 * Equivalent to {@code toByteArray(l, new byte[4], 0);}
 	 * 
@@ -95,13 +99,13 @@ public class Convert {
 	 * @return The long-decoding of the eight bytes in b, from offset to offset+7
 	 */
 	public static long byteArrayToLong(byte[] b, int offset) {
-		return  b[offset+0]      +
-				(b[offset+1]<<8)  +
-				(b[offset+2]<<16) +
-				(b[offset+3]<<24) +
-				(b[offset+4]<<32) +
-				(b[offset+5]<<40) +
-				(b[offset+6]<<48) +
-				(b[offset+7]<<56);
+		return  unsigned(b[offset+0])      +
+				(unsigned(b[offset+1])<<8)  +
+				(unsigned(b[offset+2])<<16) +
+				(unsigned(b[offset+3])<<24) +
+				(unsigned(b[offset+4])<<32) +
+				(unsigned(b[offset+5])<<40) +
+				(unsigned(b[offset+6])<<48) +
+				(unsigned(b[offset+7])<<56);
 	}
 }

@@ -5,24 +5,24 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-import namenode.NameNodeFile;
-
 import common.RMIHelper;
-import common.protocols.ClientDataNodeProtocol;
+import common.exceptions.AllDataNodesAreDeadException;
+import common.exceptions.RemoteDirNotFoundException;
 import common.protocols.ClientNameNodeProtocol;
-import common.protocols.RemoteFile;
 
 
 public class Client {
-	private ClientNameNodeProtocol nameNode;
-	
 	public Client(ClientNameNodeProtocol nameNode) {
-		this.nameNode = nameNode;
-		
 		try {
-			File file = new File(nameNode.createFile("lol", (byte) 3));
+			GreatFile file = nameNode.createFile("/lol", (byte) 3);
+			file.write("data here");
+			file.close();
 			file.delete();
 		} catch (RemoteException e) {
+			e.printStackTrace();
+		} catch (AllDataNodesAreDeadException e) {
+			System.err.println("all DataNodes in replication pipeline died");
+		} catch (RemoteDirNotFoundException e) {
 			e.printStackTrace();
 		}
 		
@@ -45,11 +45,20 @@ public class Client {
 		RMIHelper.maybeStartSecurityManager();
 		
 		ClientNameNodeProtocol nameNode = null;
+		String host = "localhost";
+		String nameNodeAddress = "//"+host+"/NameNode";
 		
 		try {
-			nameNode = (ClientNameNodeProtocol) Naming.lookup("//localhost/NameNode");
-		} catch (MalformedURLException | RemoteException | NotBoundException e) {
+			nameNode = (ClientNameNodeProtocol) Naming.lookup(nameNodeAddress);
+		} catch (MalformedURLException e) {
 			e.printStackTrace();
+			System.exit(1);
+		} catch (RemoteException e) {
+			System.err.println(e.getLocalizedMessage());
+			System.exit(1);
+		} catch (NotBoundException e) {
+			System.err.printf("rmiregistry is likely running on the NameNode '%s', " +
+					"but '%s' is not bound.\n", host, e.getMessage());
 			System.exit(1);
 		}
 		

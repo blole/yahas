@@ -6,12 +6,11 @@ import java.util.List;
 
 import common.LocatedBlock;
 
-import client.Block;
-
 
 public interface RemoteFile extends Remote {
 	LocatedBlock addBlock() throws RemoteException;
 	LocatedBlock getLastBlock() throws RemoteException;
+	LocatedBlock getWritingBlock() throws RemoteException;
 	void renewLease() throws RemoteException;
 	void close() throws RemoteException;
 	

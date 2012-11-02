@@ -36,6 +36,7 @@ public class NameNodeDir implements RemoteDir {
 	
 	
 	
+	
 	public void addFile(NameNodeFile file) {
 		files.put(file.getName(), file);
 	}
@@ -131,7 +132,7 @@ public class NameNodeDir implements RemoteDir {
 	
 	
 	@Override
-	public void delete(boolean recursively) throws RemoteException {
+	public void delete(boolean recursively) throws RemoteException, RemoteDirNotEmptyException {
 		if (parent != null) { //this isn't the root dir
 			if (recursively || (subDirs.size() == 0 && files.size() == 0))
 				parent.subDirs.remove(this);
@@ -141,7 +142,7 @@ public class NameNodeDir implements RemoteDir {
 	}
 	
 	@Override
-	public void move(String pathTo) throws RemoteException {
+	public void move(String pathTo) throws RemoteException, RemoteDirNotFoundException {
 		getDir(pathTo).addSubDir(this);
 	}
 	

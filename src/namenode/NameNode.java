@@ -6,26 +6,33 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteServer;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
+
+import client.GreatFile;
+
 import common.Constants;
 import common.RMIHelper;
+import common.exceptions.RemoteDirNotFoundException;
 import common.exceptions.RemoteFileNotFoundException;
-import common.protocols.ClientDataNodeProtocol;
 import common.protocols.ClientNameNodeProtocol;
 import common.protocols.NameNodeDataNodeProtocol;
+import common.protocols.RemoteDataNode;
 import common.protocols.RemoteDir;
-import common.protocols.RemoteFile;
 import common.protocols.RemoteNameNode;
 
 public class NameNode extends RemoteServer implements RemoteNameNode {
 	private static final long serialVersionUID = -8076847401609606850L;
-	private HashSet<ClientDataNodeProtocol> connectedDataNodes = new HashSet<>();
+	private Random randomIDgenerator = new Random();
+	private HashSet<RemoteDataNode> connectedDataNodes = new HashSet<>();
 	private HeartBeatReceiver heartBeatReceiver;
 	private NameNodeDir root;
 
 	public NameNode(int heartBeatPort) {
 		heartBeatReceiver = new HeartBeatReceiver(this, heartBeatPort);
+		root = new NameNodeDir();
 	}
 	
 	private void start() {
@@ -37,22 +44,26 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	
 	
-	
-	
 	@Override
-	public RemoteFile getFile(String path) throws RemoteException {
+	public GreatFile getFile(String path) throws RemoteException, RemoteFileNotFoundException {
 		NameNodeFile file = root.getFile(path);
 		if (file == null)
 			throw new RemoteFileNotFoundException();
 		else
-			return file.getStub();
+			return new GreatFile(file.getStub());
 	}
 
 	@Override
-	public RemoteFile createFile(String name, byte replicationFactor) throws RemoteException {
+	public GreatFile createFile(String path, byte replicationFactor) throws RemoteException, RemoteDirNotFoundException {
+		int lastSlashIndex = path.lastIndexOf('/');
+		if (lastSlashIndex < 0)
+			lastSlashIndex = 0;
+		
+		String dirs = path.substring(0, lastSlashIndex);
+		String name = path.substring(lastSlashIndex);
 		NameNodeFile file = new NameNodeFile(this, name, replicationFactor);
-		root.addFile(file);
-		return file.getStub();
+		root.getDir(dirs).addFile(file);
+		return new GreatFile(file.getStub());
 	}
 
 	@Override
@@ -62,14 +73,17 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	}
 
 	@Override
-	public RemoteDir getDir(String path) throws RemoteException {
+	public RemoteDir getDir(String path) throws RemoteException, RemoteDirNotFoundException {
 		return root.getDir(path).getStub();
 	}
 
 	@Override
 	public int register(NameNodeDataNodeProtocol dataNode) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+		int i;
+		do {
+			i = randomIDgenerator.nextInt();
+		} while (i<1);
+		return i;
 	}
 
 	@Override
@@ -79,8 +93,17 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	}
 
 	@Override
-	public List<ClientDataNodeProtocol> getDataNodes() throws RemoteException {
-		return null;
+	public List<RemoteDataNode> getDataNodes() throws RemoteException {
+		return new ArrayList<>(connectedDataNodes);
+	}
+
+	public List<RemoteDataNode> getAppropriateDataNodes(byte replicationFactor) {
+		return new ArrayList<>(connectedDataNodes);
+	}
+
+	public long getNewBlockID() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 	
@@ -90,8 +113,11 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		try {
 			connectedDataNodes.add(dataNodeImage.getStub());
 			System.out.printf("%s connected\n", dataNodeImage);
-		} catch (MalformedURLException | RemoteException | NotBoundException e) {
-			System.err.printf("%s failed connecting: %s\n", dataNodeImage, e.getLocalizedMessage());
+		} catch (MalformedURLException | RemoteException e) {
+			e.printStackTrace();
+			System.err.printf("%s failed to connect: %s\n", dataNodeImage, e.getLocalizedMessage());
+		} catch (NotBoundException e) {
+			System.err.printf("%s failed to connect: the remote DataNode was not bound.\n", dataNodeImage);
 		}
 				
 		//TODO: spawn this as a new thread.
@@ -129,10 +155,5 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		}
 		
 		nameNode.start();
-	}
-
-	public long getNewBlockID() {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 }

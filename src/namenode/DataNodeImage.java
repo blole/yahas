@@ -7,12 +7,13 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
 import common.protocols.ClientDataNodeProtocol;
+import common.protocols.RemoteDataNode;
 
 public class DataNodeImage {
 	public final InetSocketAddress receivedHearbeatSocketAddress;
 	public final int id;
 	public int availableSpace;
-	private ClientDataNodeProtocol stub;
+	private RemoteDataNode stub;
 
 	public DataNodeImage(int dataNodeID, InetSocketAddress socketAddress) {
 		this.receivedHearbeatSocketAddress = socketAddress;
@@ -49,9 +50,9 @@ public class DataNodeImage {
 		return 	"//"+receivedHearbeatSocketAddress.getHostString()+"/DataNode"+id;
 	}
 
-	public ClientDataNodeProtocol getStub() throws MalformedURLException, RemoteException, NotBoundException {
+	public RemoteDataNode getStub() throws MalformedURLException, RemoteException, NotBoundException {
 		if (stub == null)
-			stub = (ClientDataNodeProtocol) Naming.lookup(getRMIAddress()); 
+			stub = (RemoteDataNode) Naming.lookup(getRMIAddress()); 
 		return stub;
 	}
 

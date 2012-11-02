@@ -10,9 +10,9 @@ public interface RemoteBlock extends Remote {
 	int getPreferredBlockSize() throws RemoteException;
 	int getRemainingSize() throws RemoteException;
 	
-	void write(String s) throws RemoteException, IOException;
+	void write(String data) throws RemoteException, IOException;
 	
-	void replicateTo(List<DataNodeDataNodeProtocol> dataNodes) throws RemoteException;
+	void replicateTo(List<? extends DataNodeDataNodeProtocol> dataNodes, int myIndex) throws RemoteException;
 	void delete() throws RemoteException;
 	void close() throws RemoteException;
 }

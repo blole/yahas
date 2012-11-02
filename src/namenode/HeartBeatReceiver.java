@@ -5,6 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+
 import common.Action;
 import common.Constants;
 import common.Convert;
@@ -13,7 +14,7 @@ import common.TimeoutHashSet;
 public class HeartBeatReceiver implements Runnable {
 	private DatagramSocket incomingHeartBeatSocket;
 	private NameNode reportBackTo;
-	private TimeoutHashSet<DataNodeImage> connectedDataNodes; //TODO: replace ArrayList with a HashSomething
+	private TimeoutHashSet<DataNodeImage> connectedDataNodes;
 
 	public HeartBeatReceiver(NameNode reportBackTo, int heartBeatPort) {
 		try {

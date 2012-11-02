@@ -1,8 +1,6 @@
 package client;
 
-import java.net.MalformedURLException;
-import java.rmi.Naming;
-import java.rmi.NotBoundException;
+import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 import common.RMIHelper;
@@ -17,7 +15,7 @@ public class Client {
 			GreatFile file = nameNode.createFile("/lol", (byte) 3);
 			file.write("data here");
 			file.close();
-			file.delete();
+			//file.delete();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (AllDataNodesAreDeadException e) {
@@ -42,26 +40,12 @@ public class Client {
 	
 	
 	public static void main(String args[]) {
-		RMIHelper.maybeStartSecurityManager();
-		
-		ClientNameNodeProtocol nameNode = null;
 		String host = "localhost";
 		String nameNodeAddress = "//"+host+"/NameNode";
 		
-		try {
-			nameNode = (ClientNameNodeProtocol) Naming.lookup(nameNodeAddress);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-			System.exit(1);
-		} catch (RemoteException e) {
-			System.err.println(e.getLocalizedMessage());
-			System.exit(1);
-		} catch (NotBoundException e) {
-			System.err.printf("rmiregistry is likely running on the NameNode '%s', " +
-					"but '%s' is not bound.\n", host, e.getMessage());
-			System.exit(1);
-		}
-		
-		new Client(nameNode);
+		RMIHelper.maybeStartSecurityManager();
+		Remote nameNode = RMIHelper.lookup(nameNodeAddress);
+		if (nameNode != null)
+			new Client((ClientNameNodeProtocol) nameNode);
 	}
 }

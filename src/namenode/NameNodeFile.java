@@ -1,11 +1,11 @@
 package namenode;
 
 import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
 
 import common.LocatedBlock;
+import common.RMIHelper;
 import common.protocols.RemoteFile;
 
 public class NameNodeFile implements RemoteFile {
@@ -77,7 +77,7 @@ public class NameNodeFile implements RemoteFile {
 	
 	
 	public RemoteFile getStub() throws RemoteException {
-		return (RemoteFile) UnicastRemoteObject.exportObject(this, 0);
+		return (RemoteFile) RMIHelper.getStub(this);
 	}
 
 	public String getName() {

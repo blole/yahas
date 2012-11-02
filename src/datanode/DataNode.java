@@ -8,10 +8,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.SocketException;
-import java.rmi.Naming;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 
 import common.BlockReport;
@@ -31,68 +28,16 @@ public class DataNode implements RemoteDataNode {
 	public final String pathBaseDir;
 	public final String pathBlocks;
 	
-	public int id;
+	public final int id;
 	private HeartBeatSender heartBeatSender;
 	public final HashMap<Long, Block> openBlocks = new HashMap<>();
 	private DataNodeNameNodeProtocol nameNode;
 	
-	public DataNode(DataNodeNameNodeProtocol nameNode, String pathBaseDir, InetSocketAddress nameNodeHeartBeatSocketAddress) {
+	public DataNode(int id, String baseDir, DataNodeNameNodeProtocol nameNode, InetSocketAddress nameNodeHeartBeatSocketAddress) {
+		this.id = id;
 		this.nameNode = nameNode;
-		this.pathBaseDir = pathBaseDir; //String.format("../datanode%d/", id);
-		this.pathBlocks = pathBaseDir + BASE_BLOCK_PATH;
-		
-		File saveDir = new File(pathBaseDir);
-		if (!saveDir.exists())
-			saveDir.mkdirs();
-		
-		File idFile = new File(pathBaseDir+ID_FILE_NAME);
-		if (idFile.exists()) {
-			try {
-				FileReader reader = new FileReader(idFile);
-				String idString = new BufferedReader(reader).readLine();
-				reader.close();
-				System.out.println(idFile.getAbsolutePath());
-				id = Integer.parseInt(idString);
-				System.out.printf("read ID from file: %d\n", id);
-			} catch (NumberFormatException e) {
-				throw new RuntimeException(String.format(
-						"The file '%s' did not contain a valid ID.", idFile.getAbsolutePath()));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		} else {
-			int attempts = 0;
-			while (true) {
-				int retryTime = 1_000;
-				try {
-					id = nameNode.register(this.getStub());
-					System.out.printf("registered with the NameNode for the new ID: %d\n", id);
-					break;
-				} catch (RemoteException e) {
-					if (attempts == 0) {
-						System.err.println("error while registering with the NameNode:");
-						System.err.println(e.getMessage());
-						System.err.printf("retrying in %d seconds\n", retryTime/1000);
-					}
-					else {
-						System.err.printf("retry number %d failed...\n", attempts);
-					}
-					try {
-						Thread.sleep(retryTime);
-					} catch (InterruptedException e1) {}
-					attempts++;
-				}
-			}
-			try {
-				idFile.createNewFile();
-				FileWriter writer = new FileWriter(idFile);
-				writer.write(""+id);
-				writer.close();
-			} catch (IOException e) {
-				System.err.printf("could not save ID to file '%s'\n", idFile.getAbsolutePath());
-				e.printStackTrace();
-			}
-		}
+		this.pathBaseDir = baseDir; //String.format("../datanode%d/", id);
+		this.pathBlocks = baseDir + BASE_BLOCK_PATH;
 		
 		try {
 			heartBeatSender = new HeartBeatSender(nameNodeHeartBeatSocketAddress, Constants.DEFAULT_HEARTBEAT_INTERVAL_MS, id);
@@ -123,7 +68,7 @@ public class DataNode implements RemoteDataNode {
 	@Override
 	public RemoteBlock openOrCreateBlock(long blockID) throws RemoteException,
 					RemoteBlockAlreadyOpenException {
-		return Block.getOrCreate(blockID, this).getStub();
+		return Block.openOrCreate(blockID, this).getStub();
 	}
 
 	@Override
@@ -132,7 +77,7 @@ public class DataNode implements RemoteDataNode {
 	}
 	
 	public RemoteDataNode getStub() throws RemoteException {
-		return (RemoteDataNode) UnicastRemoteObject.exportObject(this, 0);
+		return (RemoteDataNode) RMIHelper.getStub(this);
 	}
 	
 	
@@ -142,6 +87,11 @@ public class DataNode implements RemoteDataNode {
 	public static void main(String[] args) {
 		String host = "localhost";
 		String nameNodeAddress = "//"+host+"/NameNode";
+		String baseDir;
+		if (args.length > 0)
+			baseDir = args[0]+"/";
+		else
+			baseDir = "datanode0/";
 		
 		InetSocketAddress nameNodeHeartBeatSocketAddress =
 				new InetSocketAddress(host, Constants.DEFAULT_NAME_NODE_HEARTBEAT_PORT);
@@ -149,30 +99,74 @@ public class DataNode implements RemoteDataNode {
 		RMIHelper.maybeStartSecurityManager();
 		RMIHelper.makeSureRegistryIsStarted(Constants.DEFAULT_DATA_NODE_PORT);
 		
-		DataNodeNameNodeProtocol nameNode = null;
-		try {
-			nameNode = (DataNodeNameNodeProtocol) Naming.lookup(nameNodeAddress);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-			System.exit(1);
-		} catch (RemoteException e) {
-			System.err.println(e.getLocalizedMessage());
-			System.exit(1);
-		} catch (NotBoundException e) {
-			System.err.printf("rmiregistry is likely running on the NameNode '%s', " +
-					"but '%s' is not bound.\n", host, e.getMessage());
-			System.exit(1);
+		DataNodeNameNodeProtocol nameNode = (DataNodeNameNodeProtocol)
+				RMIHelper.lookupAndWaitForRemoteToStartIfNecessary(nameNodeAddress, 1_000);
+		
+		int id = getSavedID(baseDir);
+		if (id == 0) {
+			id = registerForNewID(nameNode);
+			saveID(baseDir, id);
 		}
 		
-		DataNode dataNode = new DataNode(nameNode, "datanode0/", nameNodeHeartBeatSocketAddress);
+		DataNode dataNode = new DataNode(id, baseDir, nameNode, nameNodeHeartBeatSocketAddress);
 		
 		try {
-			Naming.rebind("DataNode"+dataNode.id, dataNode.getStub());
+			RMIHelper.rebindAndHookUnbind("DataNode"+dataNode.id, dataNode.getStub());
 		} catch (RemoteException | MalformedURLException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
 		
 		dataNode.start();
+	}
+	
+	public static void saveID(String baseDir, int id) {
+		File idFile = new File(baseDir+ID_FILE_NAME);
+		idFile.getParentFile().mkdirs();
+		try {
+			idFile.createNewFile();
+			FileWriter writer = new FileWriter(idFile);
+			writer.write(""+id);
+			writer.close();
+		} catch (IOException e) {
+			System.err.printf("could not save ID to file '%s'\n", idFile.getAbsolutePath());
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
+	
+	public static int getSavedID(String baseDir) {
+		File idFile = new File(baseDir+ID_FILE_NAME);
+		if (idFile.exists()) {
+			try {
+				FileReader reader = new FileReader(idFile);
+				String idString = new BufferedReader(reader).readLine();
+				reader.close();
+				int id = Integer.parseInt(idString);
+				System.out.printf("Read ID from file: %d\n", id);
+				return id;
+			} catch (IOException e) {
+				System.err.printf("Could not read saved ID from file '%s'", idFile.getAbsolutePath());
+				e.printStackTrace();
+				System.exit(1);
+			} catch (NumberFormatException e) {
+				System.err.printf("The file '%s' did not contain a valid ID.", idFile.getAbsolutePath());
+				System.exit(1);
+			}
+		}
+		return 0;
+	}
+	
+	public static int registerForNewID(DataNodeNameNodeProtocol nameNode) {
+		try {
+			int id = nameNode.register();
+			System.out.printf("registered with the NameNode for the new ID: %d\n", id);
+			return id;
+		} catch (RemoteException e) {
+			System.err.println("error while registering with the NameNode:");
+			System.err.println(e.getMessage());
+			System.exit(1);
+		}
+		return 0; //never executed;
 	}
 }

@@ -6,18 +6,31 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-import common.protocols.ClientDataNodeProtocol;
 import common.protocols.RemoteDataNode;
 
 public class DataNodeImage {
 	public final InetSocketAddress receivedHearbeatSocketAddress;
 	public final int id;
 	public int availableSpace;
-	private RemoteDataNode stub;
+	public final RemoteDataNode stub;
 
-	public DataNodeImage(int dataNodeID, InetSocketAddress socketAddress) {
+	public DataNodeImage(int dataNodeID, InetSocketAddress socketAddress) throws MalformedURLException, RemoteException, NotBoundException {
 		this.receivedHearbeatSocketAddress = socketAddress;
 		this.id = dataNodeID;
+		this.stub = (RemoteDataNode) Naming.lookup(getRMIAddress());
+	}
+	
+	public String getRMIAddress() {
+		return 	"//"+receivedHearbeatSocketAddress.getHostString()+"/DataNode"+id;
+	}
+	
+	
+	
+	
+	
+	@Override
+	public String toString() {
+		return String.format("[DataNodeImage %s]", getRMIAddress());
 	}
 	
 	@Override
@@ -29,38 +42,12 @@ public class DataNodeImage {
 		
 		// object must be DataNodeImage at this point
 		DataNodeImage otherDataNodeImage = (DataNodeImage)obj;
-		return id == otherDataNodeImage.id &&
-			(
-				receivedHearbeatSocketAddress == otherDataNodeImage.receivedHearbeatSocketAddress ||
-				(receivedHearbeatSocketAddress != null && receivedHearbeatSocketAddress.equals(otherDataNodeImage.receivedHearbeatSocketAddress))
-			);
+		return id == otherDataNodeImage.id;
 	}
 	
 	@Override
 	public int hashCode() {
-		return 997 * id ^ 991 * receivedHearbeatSocketAddress.hashCode();
-	}
-	
-	@Override
-	public String toString() {
-		return String.format("[DataNodeImage %s]", getRMIAddress());
-	}
-	
-	public String getRMIAddress() {
-		return 	"//"+receivedHearbeatSocketAddress.getHostString()+"/DataNode"+id;
-	}
-
-	public RemoteDataNode getStub() throws MalformedURLException, RemoteException, NotBoundException {
-		if (stub == null)
-			stub = (RemoteDataNode) Naming.lookup(getRMIAddress()); 
-		return stub;
-	}
-
-	public ClientDataNodeProtocol getStubOrNull() {
-		try {
-			return getStub();
-		} catch (MalformedURLException | RemoteException | NotBoundException e) {
-			return null;
-		}
+		return id;
+		//return 997 * id ^ 991 * receivedHearbeatSocketAddress.hashCode();
 	}
 }

@@ -1,11 +1,8 @@
 package namenode;
 
 import java.net.MalformedURLException;
-import java.rmi.Naming;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteServer;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -17,8 +14,6 @@ import common.Constants;
 import common.RMIHelper;
 import common.exceptions.RemoteDirNotFoundException;
 import common.exceptions.RemoteFileNotFoundException;
-import common.protocols.ClientNameNodeProtocol;
-import common.protocols.NameNodeDataNodeProtocol;
 import common.protocols.RemoteDataNode;
 import common.protocols.RemoteDir;
 import common.protocols.RemoteNameNode;
@@ -26,7 +21,7 @@ import common.protocols.RemoteNameNode;
 public class NameNode extends RemoteServer implements RemoteNameNode {
 	private static final long serialVersionUID = -8076847401609606850L;
 	private Random randomIDgenerator = new Random();
-	private HashSet<RemoteDataNode> connectedDataNodes = new HashSet<>();
+	private HashSet<DataNodeImage> connectedDataNodes = new HashSet<>();
 	private HeartBeatReceiver heartBeatReceiver;
 	private NameNodeDir root;
 
@@ -78,7 +73,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	}
 
 	@Override
-	public int register(NameNodeDataNodeProtocol dataNode) throws RemoteException {
+	public int register() throws RemoteException {
 		int i;
 		do {
 			i = randomIDgenerator.nextInt();
@@ -94,11 +89,20 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 
 	@Override
 	public List<RemoteDataNode> getDataNodes() throws RemoteException {
-		return new ArrayList<>(connectedDataNodes);
+		ArrayList<RemoteDataNode> list = new ArrayList<>();
+		for (DataNodeImage dataNode : connectedDataNodes) {
+			list.add(dataNode.stub);
+		}
+		return list;
 	}
 
 	public List<RemoteDataNode> getAppropriateDataNodes(byte replicationFactor) {
-		return new ArrayList<>(connectedDataNodes);
+		//TODO
+		ArrayList<RemoteDataNode> list = new ArrayList<>();
+		for (DataNodeImage dataNode : connectedDataNodes) {
+			list.add(dataNode.stub);
+		}
+		return list;
 	}
 
 	public long getNewBlockID() {
@@ -110,15 +114,8 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	
 	public void dataNodeConnected(DataNodeImage dataNodeImage) {
-		try {
-			connectedDataNodes.add(dataNodeImage.getStub());
-			System.out.printf("%s connected\n", dataNodeImage);
-		} catch (MalformedURLException | RemoteException e) {
-			e.printStackTrace();
-			System.err.printf("%s failed to connect: %s\n", dataNodeImage, e.getLocalizedMessage());
-		} catch (NotBoundException e) {
-			System.err.printf("%s failed to connect: the remote DataNode was not bound.\n", dataNodeImage);
-		}
+		connectedDataNodes.add(dataNodeImage);
+		System.out.printf("%s connected\n", dataNodeImage);
 				
 		//TODO: spawn this as a new thread.
 //		Set<BlockImage> blocks;
@@ -130,8 +127,12 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	}
 
 	public void dataNodeDisconnected(DataNodeImage dataNodeImage) {
-		if (connectedDataNodes.remove(dataNodeImage.getStubOrNull()))
+		if (connectedDataNodes.remove(dataNodeImage))
 			System.out.printf("%s disconnected\n", dataNodeImage);
+	}
+	
+	private RemoteNameNode getStub() throws RemoteException {
+		return (RemoteNameNode) RMIHelper.getStub(this);
 	}
 	
 	
@@ -146,8 +147,8 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		
 		NameNode nameNode = new NameNode(Constants.DEFAULT_NAME_NODE_HEARTBEAT_PORT);
 		try {
-			ClientNameNodeProtocol stub = (ClientNameNodeProtocol) UnicastRemoteObject.exportObject(nameNode, 0);
-			Naming.rebind("NameNode", stub);
+			RemoteNameNode stub = nameNode.getStub();
+			RMIHelper.rebindAndHookUnbind("NameNode", stub);
 		} catch (RemoteException | MalformedURLException e) {
 		    System.err.println("Server exception: " + e.getLocalizedMessage().split(";")[0]);
 		    e.printStackTrace();

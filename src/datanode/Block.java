@@ -4,9 +4,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 
+import common.RMIHelper;
 import common.exceptions.RemoteBlockAlreadyExistsException;
 import common.exceptions.RemoteBlockAlreadyOpenException;
 import common.exceptions.RemoteBlockNotFoundException;
@@ -53,7 +53,7 @@ public class Block implements RemoteBlock {
 			return new Block(blockID, file, dataNode);
 	}
 	
-	public static Block getOrCreate(long blockID, DataNode dataNode) throws RemoteBlockAlreadyOpenException {
+	public static Block openOrCreate(long blockID, DataNode dataNode) throws RemoteBlockAlreadyOpenException {
 		if (dataNode.openBlocks.containsKey(blockID))
 			throw new RemoteBlockAlreadyOpenException();
 		else
@@ -136,6 +136,6 @@ public class Block implements RemoteBlock {
 	}
 	
 	public RemoteBlock getStub() throws RemoteException {
-		return (RemoteBlock) UnicastRemoteObject.exportObject(this, 0);
+		return (RemoteBlock) RMIHelper.getStub(this);
 	}
 }

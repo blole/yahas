@@ -1,11 +1,11 @@
 package namenode;
 
 import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import common.RMIHelper;
 import common.exceptions.RemoteDirNotEmptyException;
 import common.exceptions.RemoteDirNotFoundException;
 import common.protocols.RemoteDir;
@@ -124,7 +124,7 @@ public class NameNodeDir implements RemoteDir {
 	}
 
 	public RemoteDir getStub() throws RemoteException {
-		return (RemoteDir) UnicastRemoteObject.exportObject(this, 0);
+		return (RemoteDir) RMIHelper.getStub(this);
 	}
 	
 	

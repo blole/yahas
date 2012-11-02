@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.SocketException;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 
 import common.Action;
 import common.Constants;
@@ -51,15 +54,25 @@ public class HeartBeatReceiver implements Runnable {
 			}
 			
 			if (packet.getLength() != 4)
-				System.err.printf("Recieved a HeartBeat with the wrong length: %d\n", packet.getLength());
+				System.err.printf("Recieved a HeartBeat with the wrong length: %d\n" +
+						"from %s", packet.getLength(), (InetSocketAddress)packet.getSocketAddress());
 			else {
 				byte[] b = packet.getData();
 				
 				int dataNodeID = Convert.byteArrayToInt(b);
-				DataNodeImage dataNodeImage = new DataNodeImage(dataNodeID, (InetSocketAddress)packet.getSocketAddress());
 				
-				if (connectedDataNodes.addOrRefresh(dataNodeImage))
-					reportBackTo.dataNodeConnected(dataNodeImage);
+				try {
+					DataNodeImage dataNodeImage = new DataNodeImage(dataNodeID, (InetSocketAddress)packet.getSocketAddress());
+					
+					if (connectedDataNodes.addOrRefresh(dataNodeImage))
+						reportBackTo.dataNodeConnected(dataNodeImage);
+				} catch (MalformedURLException | RemoteException e) {
+					e.printStackTrace();
+					System.err.printf("DataNode '%d' failed to connect:\n%s\n", dataNodeID, e.getLocalizedMessage());
+				} catch (NotBoundException e) {
+					System.err.printf("DataNode '%d' failed to connect:\n" +
+							"the remote DataNode was not bound in the rmiregistry.\n", dataNodeID);
+				}
 			}
 		}
 	}

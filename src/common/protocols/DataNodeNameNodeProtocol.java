@@ -4,6 +4,6 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface DataNodeNameNodeProtocol extends Remote{
-	int register(NameNodeDataNodeProtocol dataNode) throws RemoteException;
+	int register() throws RemoteException;
 	void blockReceived(long blockId) throws RemoteException;
 }

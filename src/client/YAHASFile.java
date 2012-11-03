@@ -10,15 +10,15 @@ import common.exceptions.AllDataNodesAreDeadException;
 import common.protocols.RemoteFile;
 
 
-public class GreatFile implements Serializable {
+public class YAHASFile implements Serializable {
 	private static final long serialVersionUID = -1422394544577820093L;
 	private RemoteFile remoteFile;
 	
-	public GreatFile(NameNodeFile file) throws RemoteException {
+	public YAHASFile(NameNodeFile file) throws RemoteException {
 		this(file.getStub());
 	}
 	
-	public GreatFile(RemoteFile remoteFile) {
+	public YAHASFile(RemoteFile remoteFile) {
 		this.remoteFile = remoteFile;
 	}
 	

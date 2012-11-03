@@ -12,7 +12,7 @@ import common.protocols.ClientNameNodeProtocol;
 public class Client {
 	public Client(ClientNameNodeProtocol nameNode) {
 		try {
-			GreatFile file = nameNode.createFile("/lol", (byte) 3);
+			YAHASFile file = nameNode.createFile("/lol", (byte) 3);
 			file.write("data here");
 			file.close();
 			//file.delete();

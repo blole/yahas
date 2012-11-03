@@ -39,6 +39,7 @@ public class Convert {
 	}
 	
 	/**
+	 * 
 	 * @param b
 	 * @param offset
 	 * @return The int-decoding of the four bytes in b, from offset to offset+3

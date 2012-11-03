@@ -9,6 +9,7 @@ import common.RMIHelper;
 import common.protocols.RemoteFile;
 
 public class NameNodeFile implements RemoteFile {
+	
 	private NameNode nameNode;
 	private String name;
 	private final ArrayList<LocatedBlock> blocks = new ArrayList<>();

@@ -1,6 +1,11 @@
 package common.protocols;
 
-public interface RemoteNameNode extends
-	  ClientNameNodeProtocol,
-	DataNodeNameNodeProtocol
-{ }
+/**
+ * Interface that represents a NameNode.
+ * 
+ * @author Bjorn, Govind, Jerry, Karan
+ * 
+ */
+public interface RemoteNameNode extends ClientNameNodeProtocol,
+		DataNodeNameNodeProtocol {
+}

@@ -11,6 +11,8 @@ import java.net.SocketException;
 import java.rmi.RemoteException;
 import java.util.HashMap;
 
+import org.apache.log4j.Logger;
+
 import common.BlockReport;
 import common.Constants;
 import common.RMIHelper;
@@ -23,14 +25,18 @@ import common.protocols.RemoteDataNode;
 
 
 public class DataNode implements RemoteDataNode {
+	
 	private static final String BASE_BLOCK_PATH = "blocks/";
 	private static final String ID_FILE_NAME = "id.txt";
 	public final String pathBaseDir;
 	public final String pathBlocks;
 	
+	private static final Logger LOGGER = Logger.getLogger(DataNode.class.getCanonicalName());
+	
 	public final int id;
 	private HeartBeatSender heartBeatSender;
 	public final HashMap<Long, Block> openBlocks = new HashMap<>();
+	
 	private DataNodeNameNodeProtocol nameNode;
 	
 	public DataNode(int id, String baseDir, DataNodeNameNodeProtocol nameNode, InetSocketAddress nameNodeHeartBeatSocketAddress) {
@@ -49,7 +55,7 @@ public class DataNode implements RemoteDataNode {
 	
 	public void start() {
 		new Thread(heartBeatSender).start();
-		System.out.printf("Sending HeartBeats every %d ms\n", heartBeatSender.getInterval());
+		LOGGER.debug("Sending HeartBeats every " +  heartBeatSender.getInterval() + " ms");
 	}
 
 	@Override

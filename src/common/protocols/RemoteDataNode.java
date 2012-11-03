@@ -1,7 +1,12 @@
 package common.protocols;
 
-public interface RemoteDataNode extends
-	  ClientDataNodeProtocol,
-	NameNodeDataNodeProtocol,
-	DataNodeDataNodeProtocol
-{ }
+/**
+ * Interface representing a DataNode. 
+ * It inturn implements the relevant procotocols
+ * 
+ * @author Bjorn, Govind, Jerry, Karan
+ * 
+ */
+public interface RemoteDataNode extends ClientDataNodeProtocol,
+		NameNodeDataNodeProtocol, DataNodeDataNodeProtocol {
+}

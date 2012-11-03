@@ -17,7 +17,9 @@ import common.TimeoutHashSet;
 public class HeartBeatReceiver implements Runnable {
 	private DatagramSocket incomingHeartBeatSocket;
 	private NameNode reportBackTo;
-	private TimeoutHashSet<DataNodeImage> connectedDataNodes;
+	
+	//Removes an element when a timeout happens
+	private TimeoutHashSet<DataNodeImage> connectedDataNodes; 
 
 	public HeartBeatReceiver(NameNode reportBackTo, int heartBeatPort) {
 		try {
@@ -34,7 +36,6 @@ public class HeartBeatReceiver implements Runnable {
 	public void run() {
 		byte[] buf = new byte[1024];
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
-		
 		connectedDataNodes = new TimeoutHashSet<DataNodeImage>(
 				Constants.DEFAULT_HEARTBEAT_TIMEOUT_MS,
 				new Action<DataNodeImage>(){

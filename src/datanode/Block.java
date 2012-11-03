@@ -138,4 +138,11 @@ public class Block implements RemoteBlock {
 	public RemoteBlock getStub() throws RemoteException {
 		return (RemoteBlock) RMIHelper.getStub(this);
 	}
+
+	@Override
+	public void replicateTo(List<DataNodeDataNodeProtocol> dataNodes)
+			throws RemoteException {
+		// TODO Auto-generated method stub
+		
+	}
 }

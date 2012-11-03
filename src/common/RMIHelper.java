@@ -9,37 +9,48 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 
+import org.apache.log4j.Logger;
+
 public class RMIHelper {
 	private static final boolean useSecurityManager = false;
+	private static final Logger LOGGER = Logger.getLogger(RMIHelper.class.getCanonicalName());
+	
+	
 
+	/**
+	 * Function will try and create an RMI Registry
+	 * If it is able to create, it means, RMI Registry is not run
+	 * Hence, we instruct the user to Run the RMI Regsitry.
+	 *  @param port: Port to Run RMI Registry
+	 */
 	public static void makeSureRegistryIsStarted(int port) {
 		try {
 			LocateRegistry.createRegistry(port);
-			System.out.printf("Registry for port %d is not running.\n", port);
-			System.out.printf("Please run 'rmiregistry%s' before running this.\n", port==1099?"":" "+port);
+		LOGGER.error("Opps.. RMI Registry is not running. Please run RMI Registry ");
+		LOGGER.error("System Exiting !! ");
 			System.exit(1);
 		} catch (RemoteException e) {
 		}
 	}
 
-//	public static Registry getRegistry(int port) {
-//		System.out.printf("Registry for port %d: ", port);
-//		try {
-//			Registry reg = LocateRegistry.createRegistry(port);
-//			System.out.println("Started");
-//			return reg;
-//		} catch (RemoteException e) {
-//			System.out.println("Already started");
-//			try {
-//				return LocateRegistry.getRegistry();
-//			} catch (RemoteException e1) {
-//				System.err.println("WTF?");
-//				e1.printStackTrace();
-//				System.exit(1);
-//				return null;
-//			}
-//		}
-//	}
+	// public static Registry getRegistry(int port) {
+	// System.out.printf("Registry for port %d: ", port);
+	// try {
+	// Registry reg = LocateRegistry.createRegistry(port);
+	// System.out.println("Started");
+	// return reg;
+	// } catch (RemoteException e) {
+	// System.out.println("Already started");
+	// try {
+	// return LocateRegistry.getRegistry();
+	// } catch (RemoteException e1) {
+	// System.err.println("WTF?");
+	// e1.printStackTrace();
+	// System.exit(1);
+	// return null;
+	// }
+	// }
+	// }
 
 	public static void maybeStartSecurityManager() {
 		if (useSecurityManager) {
@@ -49,23 +60,22 @@ public class RMIHelper {
 			} else {
 				System.out.println("Security manager already exists.");
 			}
-		}
-		else
-		{
+		} else {
 			System.out.println("Not using a security manager.");
 		}
 	}
-	
+
 	public static Remote getStub(Remote remote) throws RemoteException {
 		return UnicastRemoteObject.exportObject(remote, 0);
 	}
-	
+
 	/**
-	 * The same as {@code Naming.lookup(hostAddress)} except that
-	 * it prints a nice error message to System.out and returns null
-	 * instead of casting exceptions.
+	 * The same as {@code Naming.lookup(hostAddress)} except that it prints a
+	 * nice error message to System.out and returns null instead of casting
+	 * exceptions.
 	 * 
-	 * @param hostAddress example: {@code //127.0.0.1/test}
+	 * @param hostAddress
+	 *            example: {@code //127.0.0.1/test}
 	 * @return the found stub, or null if there was an error
 	 */
 	public static Remote lookup(String hostAddress) {
@@ -76,36 +86,43 @@ public class RMIHelper {
 		} catch (RemoteException e) {
 			System.err.println(e.getLocalizedMessage());
 		} catch (NotBoundException e) {
-			System.err.printf("rmiregistry is running on the remote host (%s),\n" +
-					"   but '%s' is not bound.\n", hostAddress, e.getMessage());
+			System.err.printf(
+					"rmiregistry is running on the remote host (%s),\n"
+							+ "   but '%s' is not bound.\n", hostAddress,
+					e.getMessage());
 		}
 		return null;
 	}
 
-	public static Remote lookupAndWaitForRemoteToStartIfNecessary(
-			String name, int retryPeriod_ms) {
+	public static Remote lookupAndWaitForRemoteToStartIfNecessary(String name,
+			int retryPeriod_ms) {
 		int attempts = 0;
 		while (true) {
 			try {
 				return Naming.lookup(name);
 			} catch (RemoteException | NotBoundException e) {
 				if (attempts == 0) {
-					System.err.printf("error while connecting to remote host '%s':\n", name);
+					System.err.printf(
+							"error while connecting to remote host '%s':\n",
+							name);
 					if (e instanceof NotBoundException)
-						System.err.printf("rmiregistry is running, but '%s' is not bound.\n", e.getLocalizedMessage());
+						System.err
+								.printf("rmiregistry is running, but '%s' is not bound.\n",
+										e.getLocalizedMessage());
 					else
 						System.err.println(e.getMessage());
-					System.err.printf("\nretrying every %d seconds\n", retryPeriod_ms/1000);
-				}
-				else {
+					System.err.printf("\nretrying every %d seconds\n",
+							retryPeriod_ms / 1000);
+				} else {
 					System.err.printf("retry %d failed...\r", attempts);
 				}
 				attempts++;
-				
+
 				try {
 					Thread.sleep(retryPeriod_ms);
-				} catch (InterruptedException e1) {}
-				
+				} catch (InterruptedException e1) {
+				}
+
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
 				System.exit(1);
@@ -113,14 +130,17 @@ public class RMIHelper {
 		}
 	}
 
-	public static void rebindAndHookUnbind(final String string, Remote stub) throws RemoteException, MalformedURLException {
+	public static void rebindAndHookUnbind(final String string, Remote stub)
+			throws RemoteException, MalformedURLException {
 		Naming.rebind(string, stub);
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
 				try {
 					Naming.unbind(string);
-				} catch (RemoteException | MalformedURLException | NotBoundException e) {}
+				} catch (RemoteException | MalformedURLException
+						| NotBoundException e) {
+				}
 			}
 		});
 	}

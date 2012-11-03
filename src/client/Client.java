@@ -19,7 +19,7 @@ public class Client {
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (AllDataNodesAreDeadException e) {
-			System.err.println("all DataNodes in replication pipeline died");
+			System.err.println("All DataNodes in replication pipeline died.");
 		} catch (RemoteDirNotFoundException e) {
 			e.printStackTrace();
 		}

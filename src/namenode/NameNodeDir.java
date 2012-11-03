@@ -8,6 +8,7 @@ import java.util.List;
 import common.RMIHelper;
 import common.exceptions.RemoteDirNotEmptyException;
 import common.exceptions.RemoteDirNotFoundException;
+import common.exceptions.RemoteFileNotFoundException;
 import common.protocols.RemoteDir;
 import common.protocols.RemoteFile;
 
@@ -39,16 +40,21 @@ public class NameNodeDir implements RemoteDir {
 	
 	public void addFile(NameNodeFile file) {
 		files.put(file.getName(), file);
+		file.setParentDir(this);
 	}
 	
-	public NameNodeFile getFile(String path) {
+	public NameNodeFile getFile(String path) throws RemoteFileNotFoundException {
 		String[] s = path.split("/", 2);
-		if (s.length == 1)
-			return files.get(path);
+		if (s.length == 1) {
+			NameNodeFile file = files.get(path);
+			if (file == null)
+				throw new RemoteFileNotFoundException();
+			return file;
+		}
 		else {
 			NameNodeDir subDir = subDirs.get(s[0]);
 			if (subDir == null)
-				return null;
+				throw new RemoteFileNotFoundException();
 			else
 				return subDir.getFile(s[1]);
 		}
@@ -114,10 +120,8 @@ public class NameNodeDir implements RemoteDir {
 	}
 	
 	
-
-
-
-
+	
+	
 	
 	public String getName() {
 		return name;
@@ -130,6 +134,10 @@ public class NameNodeDir implements RemoteDir {
 	
 	
 	
+
+	public void removeFile(NameNodeFile file) {
+		files.remove(file);
+	}
 	
 	@Override
 	public void delete(boolean recursively) throws RemoteException, RemoteDirNotEmptyException {

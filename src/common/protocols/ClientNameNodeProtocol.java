@@ -7,6 +7,7 @@ import java.util.List;
 import client.YAHASFile;
 
 import common.exceptions.RemoteDirNotFoundException;
+import common.exceptions.RemoteFileAlreadyOpenException;
 import common.exceptions.RemoteFileNotFoundException;
 
 /**
@@ -40,7 +41,8 @@ public interface ClientNameNodeProtocol extends Remote {
  * @throws RemoteFileNotFoundException
  */
 	YAHASFile getFile(String name) throws RemoteException,
-			RemoteFileNotFoundException;
+			RemoteFileNotFoundException, RemoteFileAlreadyOpenException;
+
 
 	/**
 	 * Creates a directory and gets Handle to a RemoteDir

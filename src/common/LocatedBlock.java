@@ -26,6 +26,14 @@ public class LocatedBlock implements Serializable {
 		if (!initialized) {
 			initialized = true;
 			moveToNextFirstBlock();
+			while (remoteDataNodes.size() > 0) {
+				try {
+					firstBlock.replicateTo(remoteDataNodes, 0);
+					break;
+				} catch (RemoteException e) {
+					moveToNextFirstBlock();
+				}
+			}
 		}
 	}
 	
@@ -37,9 +45,7 @@ public class LocatedBlock implements Serializable {
 				firstBlock.write(data);
 				break;
 			} catch (IOException e) {
-				e.printStackTrace();
 				moveToNextFirstBlock();
-				remoteDataNodes.remove(0);
 			}
 		}
 	}
@@ -48,24 +54,31 @@ public class LocatedBlock implements Serializable {
 		while (remoteDataNodes.size() > 0) {
 			try {
 				firstBlock = remoteDataNodes.get(0).openOrCreateBlock(blockID);
-				firstBlock.replicateTo(remoteDataNodes, 0);
-				return;
+				break;
 			} catch (RemoteException e) {
 				System.err.println("DataNode unreachable");
-				remoteDataNodes.remove(0);
 			} catch (RemoteBlockAlreadyOpenException e) {
-				System.err.println("block already open on remote DataNode, removing that one");
-				remoteDataNodes.remove(0);
+				System.err.println("block already open on remote DataNode, removed from pipeline");
 			}
+			remoteDataNodes.remove(0);
 		}
 		
 		throw new AllDataNodesAreDeadException();
 	}
 
 	public void close() {
-		
+		while (remoteDataNodes.size() > 0) {
+			try {
+				firstBlock.close();
+				return;
+			} catch (RemoteException e) {
+				try {
+					moveToNextFirstBlock();
+				} catch (AllDataNodesAreDeadException e1) {}
+			}
+		}
 	}
-
+	
 	public int getBytesLeft() {
 		return 65536;
 	}

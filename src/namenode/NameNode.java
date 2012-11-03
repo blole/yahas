@@ -57,14 +57,21 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	@Override
 	public YAHASFile createFile(String path, byte replicationFactor)
 			throws RemoteException, RemoteDirNotFoundException {
+		
 		int lastSlashIndex = path.lastIndexOf('/');
+		
 		if (lastSlashIndex < 0)
 			lastSlashIndex = 0;
 
+		
 		String dirs = path.substring(0, lastSlashIndex);
+	
 		String name = path.substring(lastSlashIndex);
+		
 		NameNodeFile file = new NameNodeFile(this, name, replicationFactor);
+		
 		root.getDir(dirs).addFile(file);
+		
 		return new YAHASFile(file.getStub());
 	}
 
@@ -121,8 +128,8 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 
 	public void dataNodeConnected(DataNodeImage dataNodeImage) {
 		connectedDataNodes.add(dataNodeImage);
-		System.out.printf("%s connected\n", dataNodeImage);
-
+		LOGGER.debug( dataNodeImage + " connected\n" );
+		LOGGER.debug( "Added "+  dataNodeImage + " ConnectedDataNode List\n" );
 		// TODO: spawn this as a new thread.
 		// Set<BlockImage> blocks;
 		// try {
@@ -134,7 +141,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 
 	public void dataNodeDisconnected(DataNodeImage dataNodeImage) {
 		if (connectedDataNodes.remove(dataNodeImage))
-			System.out.printf("%s disconnected\n", dataNodeImage);
+			LOGGER.info(dataNodeImage + " disconnected");
 	}
 
 	private RemoteNameNode getStub() throws RemoteException {

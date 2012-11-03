@@ -9,6 +9,8 @@ import java.net.SocketException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
+import org.apache.log4j.Logger;
+
 import common.Action;
 import common.Constants;
 import common.Convert;
@@ -20,6 +22,7 @@ public class HeartBeatReceiver implements Runnable {
 	
 	//Removes an element when a timeout happens
 	private TimeoutHashSet<DataNodeImage> connectedDataNodes; 
+	private static final Logger LOGGER = Logger.getLogger(HeartBeatReceiver.class.getCanonicalName());
 
 	public HeartBeatReceiver(NameNode reportBackTo, int heartBeatPort) {
 		try {
@@ -64,7 +67,7 @@ public class HeartBeatReceiver implements Runnable {
 				
 				try {
 					DataNodeImage dataNodeImage = new DataNodeImage(dataNodeID, (InetSocketAddress)packet.getSocketAddress());
-					
+					LOGGER.debug("Heart Beat received from " + dataNodeID);
 					if (connectedDataNodes.addOrRefresh(dataNodeImage))
 						reportBackTo.dataNodeConnected(dataNodeImage);
 				} catch (MalformedURLException | RemoteException e) {

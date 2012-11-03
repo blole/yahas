@@ -4,14 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import org.apache.log4j.Logger;
-
 
 public class TimeoutHashSet<K>  {
 	
 	private HashMap<K, Long> hashMap = new HashMap<>();
 
-	private static final Logger LOGGER = Logger.getLogger(TimeoutHashSet.class.getCanonicalName());
 	public TimeoutHashSet(long timeout_ms, Action<K> onRemoval) {
 		forkReportingDataNodeDisconnections(timeout_ms, onRemoval);
 	}
@@ -73,7 +70,6 @@ public class TimeoutHashSet<K>  {
 					}
 
 					for (K element : toBeRemoved) {
-//						LOGGER.info("Removed " + element.toString());
 						hashMap.remove(element);
 						
 						onRemoval.execute(element);

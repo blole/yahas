@@ -4,33 +4,75 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
+import common.Action;
+import common.Constants;
 import common.LocatedBlock;
 import common.RMIHelper;
+import common.TimeoutHashSet;
 import common.protocols.RemoteFile;
 
 public class NameNodeFile implements RemoteFile {
+	private static TimeoutHashSet<NameNodeFile> leasedFiles = 
+			new TimeoutHashSet<>(Constants.DEFAULT_FILE_LEASE_TIME, new Action<NameNodeFile>() {
+				@Override
+				public void execute(NameNodeFile file) {
+					file.realClose(true);
+				}
+			});
+	
+	
+	
+	
+	
+
 	private NameNode nameNode;
 	private String name;
 	private final ArrayList<LocatedBlock> blocks = new ArrayList<>();
 	private byte replicationFactor;
+	private NameNodeDir parentDir = null;
+
+
+
+
 	
 	public NameNodeFile(NameNode nameNode, String name, byte replicationFactor) {
 		this.nameNode = nameNode;
 		this.name = name;
 		this.replicationFactor = replicationFactor;
+		this.accessed();
+		System.out.printf("File '%s' opened.\n", name);
+	}
+	
+	public void setParentDir(NameNodeDir parentDir) {
+		this.parentDir = parentDir;
+	}
+
+	private void accessed() {
+		leasedFiles.addOrRefresh(this);
 	}
 
 	@Override
 	public void delete() throws RemoteException {
-		System.out.println("delete");
+		if (parentDir != null)
+			parentDir.removeFile(this);
+		System.out.printf("File '%s' deleted.\n", name);
 	}
 
 	@Override
 	public void close() throws RemoteException {
+		leasedFiles.remove(this);
+		realClose(false);
+	}
+	private void realClose(boolean timedOut) {
+		for (LocatedBlock block : blocks)
+			block.close();
+		
+		System.out.printf("File '%s' closed beacuse %s.\n", name, timedOut?"lease expired":"of remote call");
 	}
 
 	@Override
 	public LocatedBlock addBlock() throws RemoteException {
+		accessed();
 		LocatedBlock block = new LocatedBlock(nameNode.getNewBlockID(),
 				nameNode.getAppropriateDataNodes(replicationFactor));
 		blocks.add(block);
@@ -39,6 +81,7 @@ public class NameNodeFile implements RemoteFile {
 
 	@Override
 	public LocatedBlock getLastBlock() throws RemoteException {
+		accessed();
 		return blocks.get(blocks.size()-1);
 	}
 	
@@ -48,6 +91,7 @@ public class NameNodeFile implements RemoteFile {
 	 */
 	@Override
 	public LocatedBlock getWritingBlock() throws RemoteException {
+		accessed();
 		if (blocks.size() != 0 && getLastBlock().getBytesLeft() != 0)
 			return getLastBlock();
 		else
@@ -56,25 +100,27 @@ public class NameNodeFile implements RemoteFile {
 
 	@Override
 	public List<LocatedBlock> getBlocks() throws RemoteException {
-		// TODO Auto-generated method stub
+		accessed();
 		return null;
 	}
 
 	@Override
 	public void renewLease() throws RemoteException {
-		// TODO Auto-generated method stub
-		
+		accessed();
 	}
 
 	@Override
 	public void move(String filePathAndName) throws RemoteException {
-		// TODO Auto-generated method stub
-		
+		accessed();
 	}
 	
 	
 	
 	
+
+	public boolean isOpen() {
+		return leasedFiles.contains(this);
+	}
 	
 	public RemoteFile getStub() throws RemoteException {
 		return (RemoteFile) RMIHelper.getStub(this);

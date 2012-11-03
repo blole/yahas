@@ -7,12 +7,13 @@ import java.util.List;
 import client.GreatFile;
 
 import common.exceptions.RemoteDirNotFoundException;
+import common.exceptions.RemoteFileAlreadyOpenException;
 import common.exceptions.RemoteFileNotFoundException;
 
 public interface ClientNameNodeProtocol extends Remote {
 	GreatFile createFile(String name, byte replicationFactor) throws RemoteException, RemoteDirNotFoundException;
 	GreatFile getFile(String name) throws RemoteException,
-			RemoteFileNotFoundException;
+			RemoteFileNotFoundException, RemoteFileAlreadyOpenException;
 	
 	RemoteDir createDir(String name, boolean createParentsAsNeeded) throws RemoteException;
 	RemoteDir getDir(String name) throws RemoteException, RemoteDirNotFoundException;

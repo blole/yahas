@@ -13,6 +13,7 @@ import client.GreatFile;
 import common.Constants;
 import common.RMIHelper;
 import common.exceptions.RemoteDirNotFoundException;
+import common.exceptions.RemoteFileAlreadyOpenException;
 import common.exceptions.RemoteFileNotFoundException;
 import common.protocols.RemoteDataNode;
 import common.protocols.RemoteDir;
@@ -40,10 +41,10 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	
 	@Override
-	public GreatFile getFile(String path) throws RemoteException, RemoteFileNotFoundException {
+	public GreatFile getFile(String path) throws RemoteException, RemoteFileNotFoundException, RemoteFileAlreadyOpenException {
 		NameNodeFile file = root.getFile(path);
-		if (file == null)
-			throw new RemoteFileNotFoundException();
+		if (file.isOpen())
+			throw new RemoteFileAlreadyOpenException();
 		else
 			return new GreatFile(file.getStub());
 	}

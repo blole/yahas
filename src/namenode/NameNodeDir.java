@@ -169,9 +169,4 @@ public class NameNodeDir implements RemoteDir {
 			subDirs.add(childDir.getStub());
 		return subDirs;
 	}
-
-	
-	
-
-	
 }

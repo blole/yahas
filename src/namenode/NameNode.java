@@ -27,6 +27,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	private HashSet<DataNodeImage> allEverConnectedDataNodes = new HashSet<>();
 	private HashSet<DataNodeImage> connectedDataNodes = new HashSet<>();
 	private HeartBeatReceiver heartBeatReceiver;
+	private BlockReportReceiver blkReportReceiver;
 	private NameNodeDir root;
 
 	private final static Logger LOGGER = Logger.getLogger(NameNode.class
@@ -39,6 +40,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	private void start() {
 		new Thread(heartBeatReceiver).start();
+		new Thread(new BlockReportReceiver(this, dataNodeImage, Constants.DEFAULT_BLOCKREPORT_TIME)).start();
 	
 		LOGGER.info("Server Ready");
 		LOGGER.info("Listening for HeartBeats on port "

@@ -12,6 +12,7 @@ import common.TimeoutHashSet;
 import common.protocols.RemoteFile;
 
 public class NameNodeFile implements RemoteFile {
+	
 	private static TimeoutHashSet<NameNodeFile> leasedFiles = 
 			new TimeoutHashSet<>(Constants.DEFAULT_FILE_LEASE_TIME, new Action<NameNodeFile>() {
 				@Override

@@ -131,8 +131,8 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	public void dataNodeConnected(DataNodeImage dataNodeImage) {
 		connectedDataNodes.add(dataNodeImage);
-		LOGGER.debug( dataNodeImage + " connected\n" );
-		LOGGER.debug( "Added "+  dataNodeImage + " ConnectedDataNode List\n" );
+		LOGGER.info( dataNodeImage + " connected\n" );
+		LOGGER.info( "Added "+  dataNodeImage + " ConnectedDataNode List\n" );
 		//TODO: spawn this as a new thread.
 //		Set<BlockImage> blocks;
 //		try {
@@ -160,7 +160,6 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		
 		RMIHelper.maybeStartSecurityManager();
 		RMIHelper.makeSureRegistryIsStarted(nameNodePort);
-		
 		NameNode nameNode = new NameNode(Constants.DEFAULT_NAME_NODE_HEARTBEAT_PORT);
 		try {
 			RemoteNameNode stub = nameNode.getStub();

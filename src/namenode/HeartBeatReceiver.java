@@ -67,7 +67,7 @@ public class HeartBeatReceiver implements Runnable {
 				
 				try {
 					DataNodeImage dataNodeImage = new DataNodeImage(dataNodeID, (InetSocketAddress)packet.getSocketAddress());
-					LOGGER.debug("Heart Beat received from " + dataNodeID);
+//					LOGGER.debug("Heart Beat received from " + dataNodeID);
 					if (connectedDataNodes.addOrRefresh(dataNodeImage))
 						reportBackTo.dataNodeConnected(dataNodeImage);
 				} catch (MalformedURLException | RemoteException e) {

@@ -9,7 +9,9 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -31,19 +33,23 @@ public class DataNode implements RemoteDataNode {
 	public final String pathBaseDir;
 	public final String pathBlocks;
 	
+	
 	private static final Logger LOGGER = Logger.getLogger(DataNode.class.getCanonicalName());
 	
 	public final int id;
 	private HeartBeatSender heartBeatSender;
 	public final HashMap<Long, Block> openBlocks = new HashMap<>();
-	
+	private final ArrayList<BlockReport> blockReports = new ArrayList<BlockReport>();
 	private DataNodeNameNodeProtocol nameNode;
+	//Consist of a List of Blocks and it's hash which is held by a DataNode;
+	private BlockReport blockReport; 
 	
 	public DataNode(int id, String baseDir, DataNodeNameNodeProtocol nameNode, InetSocketAddress nameNodeHeartBeatSocketAddress) {
 		this.id = id;
 		this.nameNode = nameNode;
 		this.pathBaseDir = baseDir; //String.format("../datanode%d/", id);
 		this.pathBlocks = baseDir + BASE_BLOCK_PATH;
+		this.blockReport= new BlockReport();
 		
 		try {
 			heartBeatSender = new HeartBeatSender(nameNodeHeartBeatSocketAddress, Constants.DEFAULT_HEARTBEAT_INTERVAL_MS, id);
@@ -77,9 +83,13 @@ public class DataNode implements RemoteDataNode {
 		return Block.openOrCreate(blockID, this).getStub();
 	}
 
+	public void setBlockReport(long blockId , String hashValue){
+		blockReport.addBlockReport(blockId, hashValue);
+	}
 	@Override
 	public BlockReport getBlockReport() throws RemoteException {
-		return new BlockReport();
+		return blockReport;
+		//return new BlockReport();
 	}
 	
 	public RemoteDataNode getStub() throws RemoteException {

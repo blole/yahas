@@ -46,6 +46,12 @@ public class YAHASFile implements Serializable {
 		remoteFile.close();
 	}
 	
+	public void tryToClose() {
+		try {
+			close();
+		} catch (RemoteException e) {}
+	}
+	
 	public void delete() throws RemoteException {
 		remoteFile.delete();
 	}

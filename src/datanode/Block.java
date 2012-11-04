@@ -90,8 +90,6 @@ public class Block implements RemoteBlock {
 			hashWriter.append(hashVal);
 			hashWriter.close();
 			LOGGER.debug("Calculated MD5 Hash of " + data + "as " + hashVal);
-			LOGGER.debug("Updating BlockReport...");
-			LOGGER.debug("DataNode " +  dataNode.id);
 
 			
 
@@ -143,8 +141,9 @@ public class Block implements RemoteBlock {
 	}
 	
 	public void forceClose() {
+		if (open)
+			LOGGER.debug(toString()+" closed.");
 		open = false;
-		LOGGER.debug(toString()+" closed.");
 	}
 	
 	

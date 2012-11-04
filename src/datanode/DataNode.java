@@ -34,7 +34,6 @@ public class DataNode implements RemoteDataNode {
 	public final BlockManager blocks;
 	private HeartBeatSender heartBeatSender;
 	private DataNodeNameNodeProtocol nameNode;
-	private ArrayList<Long> listOfBlocks = new ArrayList<Long>();
 
 	public DataNode(int id, String baseDir, DataNodeNameNodeProtocol nameNode,
 			InetSocketAddress nameNodeHeartBeatSocketAddress) {
@@ -96,9 +95,10 @@ public class DataNode implements RemoteDataNode {
 			throw new RemoteBlockAlreadyOpenException();
 		return block.getStub();
 	}
-
-		listOfBlocks.add(blockId);
-		
+	
+	
+	
+	
 
 	@Override
 	public BlockReport getBlockReport() throws RemoteException {

@@ -12,7 +12,6 @@ import org.apache.log4j.Logger;
 
 import client.YAHASFile;
 
-import common.BlockReport;
 import common.Constants;
 import common.RMIHelper;
 import common.exceptions.RemoteDirNotFoundException;
@@ -138,11 +137,8 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 			try {
 				dataNodeImage.stub.closeAllBlocks();
 				//for (long blockID : dataNodeImage.stub.getBlockReport().blockIDs)
-					
-	
-		//Spawn a Thread for asking Block Report 
-		new Thread(new BlockReportReceiver(this, dataNodeImage, Constants.DEFAULT_BLOCKREPORT_TIME)).start();
-
+				//Spawn a Thread for asking Block Report
+				//new Thread(new BlockReportReceiver(this, dataNodeImage, Constants.DEFAULT_BLOCKREPORT_TIME)).start();
 			} catch (RemoteException e) {
 				LOGGER.debug(e);
 			}

@@ -7,4 +7,5 @@ public class BlockReport {
 	
 	public BlockReport(Set<Long> blockIDs) {
 		this.blockIDs = blockIDs;
+	}
 }

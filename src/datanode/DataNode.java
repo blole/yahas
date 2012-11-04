@@ -71,7 +71,10 @@ public class DataNode implements RemoteDataNode {
 		Block block = blocks.get(blockID);
 		if (block != null)
 			throw new RemoteBlockAlreadyExistsException();
-		return blocks.newBlock(blockID).getStub();
+		
+		block = blocks.newBlock(blockID);
+		block.open();
+		return block.getStub();
 	}
 
 	@Override
@@ -82,6 +85,8 @@ public class DataNode implements RemoteDataNode {
 			throw new RemoteBlockNotFoundException();
 		if (block.isOpen())
 			throw new RemoteBlockAlreadyOpenException();
+		
+		block.open();
 		return block.getStub();
 	}
 
@@ -93,6 +98,8 @@ public class DataNode implements RemoteDataNode {
 			block = blocks.newBlock(blockID);
 		if (block.isOpen())
 			throw new RemoteBlockAlreadyOpenException();
+		
+		block.open();
 		return block.getStub();
 	}
 	

@@ -1,18 +1,11 @@
 package common;
 
-import java.util.ArrayList;
-
-import datanode.Block;
+import java.util.Set;
 
 public class BlockReport {
+	public Set<Long> blockIDs;
 	
-	ArrayList<Long> blocksIds = new ArrayList<Long>();
-	ArrayList<String> hashValues = new ArrayList<String>();
-	
-	public void addBlockReport(long blockId,String hashValue){
-		blocksIds.add(blockId);
-		hashValues.add(hashValue);
+	public BlockReport(Set<Long> blockIDs) {
+		this.blockIDs = blockIDs;
 	}
-	
-	
 }

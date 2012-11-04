@@ -9,4 +9,8 @@ public class Constants {
 	public static final long DEFAULT_HEARTBEAT_INTERVAL_MS = 500;
 	public static final long DEFAULT_HEARTBEAT_TIMEOUT_MS = 2000;
 	public static final long DEFAULT_FILE_LEASE_TIME = 5000;
+	
+	public static final long DEFAULT_BLOCK_OPEN_TIME = 5000;
+	public static final String HASH_FILE_ENDING = ".hash";
+	public static final String ID_FILE_NAME = "id.txt";
 }

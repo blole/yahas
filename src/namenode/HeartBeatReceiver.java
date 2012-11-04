@@ -9,8 +9,6 @@ import java.net.SocketException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-import org.apache.log4j.Logger;
-
 import common.Action;
 import common.Constants;
 import common.Convert;
@@ -21,8 +19,8 @@ public class HeartBeatReceiver implements Runnable {
 	private NameNode reportBackTo;
 	
 	//Removes an element when a timeout happens
-	private TimeoutHashSet<DataNodeImage> connectedDataNodes; 
-	private static final Logger LOGGER = Logger.getLogger(HeartBeatReceiver.class.getCanonicalName());
+	private TimeoutHashSet<DataNodeImage> connectedDataNodes;
+//	private static final Logger LOGGER = Logger.getLogger(HeartBeatReceiver.class.getCanonicalName());
 
 	public HeartBeatReceiver(NameNode reportBackTo, int heartBeatPort) {
 		try {

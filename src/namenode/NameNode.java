@@ -24,6 +24,7 @@ import common.protocols.RemoteNameNode;
 public class NameNode extends RemoteServer implements RemoteNameNode {
 	private static final long serialVersionUID = -8076847401609606850L;
 	private Random randomIDgenerator = new Random();
+	private HashSet<DataNodeImage> allEverConnectedDataNodes = new HashSet<>();
 	private HashSet<DataNodeImage> connectedDataNodes = new HashSet<>();
 	private HeartBeatReceiver heartBeatReceiver;
 	private NameNodeDir root;
@@ -131,8 +132,18 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	public void dataNodeConnected(DataNodeImage dataNodeImage) {
 		connectedDataNodes.add(dataNodeImage);
-		LOGGER.info( dataNodeImage + " connected\n" );
-		LOGGER.info( "Added "+  dataNodeImage + " ConnectedDataNode List\n" );
+		if (allEverConnectedDataNodes.add(dataNodeImage)) {
+			LOGGER.info(dataNodeImage + " connected for the first time");
+			try {
+				dataNodeImage.stub.closeAllBlocks();
+				//for (long blockID : dataNodeImage.stub.getBlockReport().blockIDs)
+					
+			} catch (RemoteException e) {
+				LOGGER.debug(e);
+			}
+		}
+		else
+			LOGGER.info(dataNodeImage + " connected");
 		//TODO: spawn this as a new thread.
 //		Set<BlockImage> blocks;
 //		try {

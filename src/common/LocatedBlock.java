@@ -49,7 +49,7 @@ public class LocatedBlock implements Serializable {
 			}
 		}
 		//Write Checksum
-			
+		
 	}
 	
 	private void moveToNextFirstBlock() throws AllDataNodesAreDeadException {

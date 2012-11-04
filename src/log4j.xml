@@ -4,8 +4,7 @@
 
 	<appender name="CA" class="org.apache.log4j.ConsoleAppender">
 		<layout class="org.apache.log4j.PatternLayout">
-			<param name="ConversionPattern" value="%d{ABSOLUTE} 
-      %5p %c{1}:%L - %m%n" />
+			<param name="ConversionPattern" value="%c{1}:%-4L %m%n" />
 		</layout>
 	</appender>
 
@@ -23,7 +22,7 @@
 
 
 	<root>
-		<priority value="info"></priority>
+		<priority value="debug"></priority>
 		<appender-ref ref="CA" />
 		<appender-ref ref="file" />
 	</root>

@@ -46,7 +46,7 @@ public class NameNodeFile implements RemoteFile {
 		this.replicationFactor = replicationFactor;
 		this.accessed();
 		
-		LOGGER.debug(String.format("File '%s' opened.\n", name));
+		LOGGER.debug(String.format("File '%s' opened.", name));
 	}
 	
 	public void setParentDir(NameNodeDir parentDir) {
@@ -62,7 +62,7 @@ public class NameNodeFile implements RemoteFile {
 		if (parentDir != null)
 			parentDir.removeFile(this);
 		
-		LOGGER.debug(String.format("File '%s' deleted.\n", name));
+		LOGGER.debug(String.format("File '%s' deleted.", name));
 	}
 
 	@Override
@@ -74,7 +74,7 @@ public class NameNodeFile implements RemoteFile {
 		for (LocatedBlock block : blocks)
 			block.close();
 		
-		LOGGER.debug(String.format("File '%s' closed beacuse %s.\n",
+		LOGGER.debug(String.format("File '%s' closed beacuse %s.",
 				name, timedOut?"lease expired":"of remote call"));
 	}
 

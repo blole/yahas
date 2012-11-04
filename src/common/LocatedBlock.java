@@ -54,7 +54,7 @@ public class LocatedBlock implements Serializable {
 		while (remoteDataNodes.size() > 0) {
 			try {
 				firstBlock = remoteDataNodes.get(0).openOrCreateBlock(blockID);
-				break;
+				return;
 			} catch (RemoteException e) {
 				System.err.println("DataNode unreachable");
 			} catch (RemoteBlockAlreadyOpenException e) {
@@ -67,14 +67,16 @@ public class LocatedBlock implements Serializable {
 	}
 
 	public void close() {
-		while (remoteDataNodes.size() > 0) {
-			try {
-				firstBlock.close();
-				return;
-			} catch (RemoteException e) {
+		if (firstBlock != null) {
+			while (remoteDataNodes.size() > 0) {
 				try {
-					moveToNextFirstBlock();
-				} catch (AllDataNodesAreDeadException e1) {}
+					firstBlock.close();
+					return;
+				} catch (RemoteException e) {
+					try {
+						moveToNextFirstBlock();
+					} catch (AllDataNodesAreDeadException e1) {}
+				}
 			}
 		}
 	}

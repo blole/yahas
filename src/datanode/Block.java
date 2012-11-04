@@ -90,6 +90,19 @@ public class Block implements RemoteBlock {
 		}
 	}
 
+	@Override
+	public void close() throws RemoteException {
+		dataNode.openBlocks.remove(blockID);
+		while (nextBlockInReplicationPipeline != null) {
+			try {
+				nextBlockInReplicationPipeline.close();
+				break;
+			} catch (IOException e) {
+				nextBlockInReplicationPipeline = getNextBlockInPipeline();
+			}
+		}
+	}
+	
 	private RemoteBlock getNextBlockInPipeline() {
 		while (myIndex+2 < replicationPipeline.size()) {
 			try {
@@ -123,6 +136,7 @@ public class Block implements RemoteBlock {
 		this.replicationPipeline = dataNodes;
 		this.myIndex = myIndex;
 		nextBlockInReplicationPipeline = getNextBlockInPipeline();
+		// TODO fix replication
 	}
 
 	@Override
@@ -130,11 +144,6 @@ public class Block implements RemoteBlock {
 		
 	}
 
-	@Override
-	public void close() throws RemoteException {
-		dataNode.openBlocks.remove(blockID);
-	}
-	
 	public RemoteBlock getStub() throws RemoteException {
 		return (RemoteBlock) RMIHelper.getStub(this);
 	}

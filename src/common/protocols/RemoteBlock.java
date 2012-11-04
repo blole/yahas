@@ -1,8 +1,6 @@
 package common.protocols;
 
 import java.io.IOException;
-
-
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
@@ -52,11 +50,10 @@ public interface RemoteBlock extends Remote {
 	void write(String s) throws RemoteException, IOException;
 
 	/**
-	 * Replicate Block to the specified DataNodes
+	 * Set this Block to replicate every write to it the specified DataNodes
+	 * until it is closed.
 	 * 
-	 * @param dataNodes
-	 *            A List of Data Nodes to which the blocks needs to be
-	 *            replicated.
+	 * @param dataNodes A List of Data Nodes to which the blocks needs to be replicated.
 	 * @throws RemoteException
 	 */
 	void replicateTo(List<DataNodeDataNodeProtocol> dataNodes)
@@ -75,14 +72,4 @@ public interface RemoteBlock extends Remote {
 	 * @throws RemoteException
 	 */
 	void close() throws RemoteException;
-
-	
-	/**
-	 * Function to perform Replication
-	 * @param dataNodes
-	 * @param myIndex
-	 * @throws RemoteException
-	 */
-	void replicateTo(List<? extends DataNodeDataNodeProtocol> dataNodes, int myIndex) throws RemoteException;
-	
 }

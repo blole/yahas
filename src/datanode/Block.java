@@ -10,7 +10,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.log4j.Logger;
 
 import common.RMIHelper;
-import common.exceptions.RemoteBlockAlreadyOpenException;
+import common.ReplicationPipeline;
 import common.protocols.DataNodeDataNodeProtocol;
 import common.protocols.RemoteBlock;
 
@@ -26,9 +26,7 @@ public class Block implements RemoteBlock {
 	private File hashFile;
 	private boolean open;
 
-	private List<? extends DataNodeDataNodeProtocol> replicationPipeline;
-	private int myIndex;
-	private RemoteBlock nextBlockInReplicationPipeline;
+	private ReplicationPipeline replicationPipeline;
 
 	private BlockManager manager;
 	
@@ -48,8 +46,10 @@ public class Block implements RemoteBlock {
 				new File(blockManager.blockDir, blockID+".hash"),
 				blockManager);
 		
-		if (file.delete()) //not created successfully
-			LOGGER.debug(String.format("Deleting block %d to make way for a new block with the same ID.", blockID));
+		if (file.delete()) //the file already existed
+			LOGGER.debug(String.format("Deleting block %d to make way for " +
+					"a new block with the same ID.", blockID));
+		
 		try {
 			file.createNewFile();
 			hashFile.createNewFile();
@@ -65,6 +65,7 @@ public class Block implements RemoteBlock {
 		this.file = file;
 		this.hashFile = hashFile;
 		this.manager = manager;
+		replicationPipeline = new ReplicationPipeline(blockID);
 	}
 	
 	
@@ -74,44 +75,37 @@ public class Block implements RemoteBlock {
 	@Override
 	public void write(String data) throws RemoteException {
 		try {
-			if (!file.exists())
-				file.createNewFile();
-			FileWriter writer = new FileWriter(file);
-
-			writer.append(data);
-			writer.close();
-
-
-			if (hashFile.exists() == false) {
-				hashFile.createNewFile();
-			}
-			FileWriter hashWriter = new FileWriter(hashFile);
-			String hashVal = DigestUtils.md5Hex(data);
-			hashWriter.append(hashVal);
-			hashWriter.close();
-			LOGGER.debug("Calculated MD5 Hash of " + data + "as " + hashVal);
-
-			
-
+			writeToFile(data);
 		} catch (IOException e) {
-			LOGGER.error(e);
-			throw new RemoteException("error while appending to block "
-					+ blockID, e);
-
+			String errormessage = "Error while appending to block "+blockID;
+			LOGGER.error(errormessage, e);
+			throw new RemoteException(errormessage, e);
 		}
-
-		replicateToNext(data);
+		replicationPipeline.write(data);
 	}
 
-	private void replicateToNext(String data) {
-		while (nextBlockInReplicationPipeline != null) {
-			try {
-				nextBlockInReplicationPipeline.write(data);
-				break;
-			} catch (IOException e) {
-				nextBlockInReplicationPipeline = getNextBlockInPipeline();
-			}
-		}
+	private void writeToFile(String data) throws IOException {
+		FileWriter writer = new FileWriter(file);
+		writer.append(data);
+		writer.close();
+
+		String hashVal = DigestUtils.md5Hex(data);
+		FileWriter hashWriter = new FileWriter(hashFile);
+		hashWriter.write(""+hashVal);
+		hashWriter.close();
+		LOGGER.debug("Calculated MD5 Hash of " + data + "as " + hashVal);
+	}
+	
+	@Override
+	public void replicateTo(List<DataNodeDataNodeProtocol> dataNodes)
+			throws RemoteException {
+		replicationPipeline.open(dataNodes);
+	}
+	
+	@Override
+	public void close() throws RemoteException {
+		forceClose();
+		replicationPipeline.close();
 	}
 	
 	
@@ -127,19 +121,6 @@ public class Block implements RemoteBlock {
 		LOGGER.debug(toString()+" opened.");
 	}
 
-	@Override
-	public void close() throws RemoteException {
-		forceClose();
-		while (nextBlockInReplicationPipeline != null) {
-			try {
-				nextBlockInReplicationPipeline.close();
-				break;
-			} catch (IOException e) {
-				nextBlockInReplicationPipeline = getNextBlockInPipeline();
-			}
-		}
-	}
-	
 	public void forceClose() {
 		if (open)
 			LOGGER.debug(toString()+" closed.");
@@ -149,18 +130,6 @@ public class Block implements RemoteBlock {
 	
 	
 	
-	
-	private RemoteBlock getNextBlockInPipeline() {
-		while (myIndex + 2 < replicationPipeline.size()) {
-			try {
-				return replicationPipeline.get(myIndex + 1).openOrCreateBlock(
-						blockID);
-			} catch (RemoteException | RemoteBlockAlreadyOpenException e) {
-				replicationPipeline.remove(myIndex + 1);
-			}
-		}
-		return null;
-	}
 
 	@Override
 	public long getID() throws RemoteException {
@@ -179,15 +148,6 @@ public class Block implements RemoteBlock {
 	}
 
 	@Override
-	public void replicateTo(List<? extends DataNodeDataNodeProtocol> dataNodes,
-			int myIndex) throws RemoteException {
-		this.replicationPipeline = dataNodes;
-		this.myIndex = myIndex;
-		nextBlockInReplicationPipeline = getNextBlockInPipeline();
-		// TODO fix replication
-	}
-
-	@Override
 	public void delete() throws RemoteException {
 		manager.remove(this);
 	}
@@ -196,13 +156,6 @@ public class Block implements RemoteBlock {
 		return (RemoteBlock) RMIHelper.getStub(this);
 	}
 
-	@Override
-	public void replicateTo(List<DataNodeDataNodeProtocol> dataNodes)
-			throws RemoteException {
-		// TODO Auto-generated method stub
-
-	}
-	
 	@Override
 	public String toString() {
 		return "[Block "+blockID+"]";

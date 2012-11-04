@@ -4,14 +4,17 @@ import java.net.MalformedURLException;
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteServer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
 import client.YAHASFile;
 
+import common.BlockReport;
 import common.Constants;
 import common.RMIHelper;
 import common.exceptions.RemoteDirNotFoundException;
@@ -26,8 +29,15 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	private Random randomIDgenerator = new Random();
 	private HashSet<DataNodeImage> allEverConnectedDataNodes = new HashSet<>();
 	private HashSet<DataNodeImage> connectedDataNodes = new HashSet<>();
+	private final HashMap<DataNodeImage, Set<Long>> dataNodeToBlockMap = new HashMap<>();
+	private final HashMap<Long, Set<DataNodeImage>> blockToDataNodeMap = new HashMap<>();
+
+
+
+
+
 	private HeartBeatReceiver heartBeatReceiver;
-	private BlockReportReceiver blkReportReceiver;
+	private BlockReportReceiver blockReportReceiver;
 	private NameNodeDir root;
 
 	private final static Logger LOGGER = Logger.getLogger(NameNode.class
@@ -35,12 +45,13 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 
 	public NameNode(int heartBeatPort) {
 		heartBeatReceiver = new HeartBeatReceiver(this, heartBeatPort);
+		blockReportReceiver = new BlockReportReceiver(this, Constants.DEFAULT_BLOCKREPORT_TIME);
 		root = new NameNodeDir();
 	}
 	
 	private void start() {
 		new Thread(heartBeatReceiver).start();
-		new Thread(new BlockReportReceiver(this, dataNodeImage, Constants.DEFAULT_BLOCKREPORT_TIME)).start();
+		new Thread(blockReportReceiver).start();
 	
 		LOGGER.info("Server Ready");
 		LOGGER.info("Listening for HeartBeats on port "
@@ -106,6 +117,10 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		
 	}
 
+	public HashSet<DataNodeImage> getConnectedDataNodes() {
+		return connectedDataNodes;
+	}
+	
 	@Override
 	public List<RemoteDataNode> getDataNodes() throws RemoteException {
 		ArrayList<RemoteDataNode> list = new ArrayList<>();
@@ -132,26 +147,54 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	
 	
-	public void dataNodeConnected(DataNodeImage dataNodeImage) {
-		connectedDataNodes.add(dataNodeImage);
-		if (allEverConnectedDataNodes.add(dataNodeImage)) {
-			LOGGER.info(dataNodeImage + " connected for the first time");
+	public void dataNodeConnected(DataNodeImage dataNode) {
+		connectedDataNodes.add(dataNode);
+		if (allEverConnectedDataNodes.add(dataNode)) {
+			LOGGER.info(dataNode + " connected for the first time since startup");
 			try {
-				dataNodeImage.stub.closeAllBlocks();
-				//for (long blockID : dataNodeImage.stub.getBlockReport().blockIDs)
-				//Spawn a Thread for asking Block Report
-				//new Thread(new BlockReportReceiver(this, dataNodeImage, Constants.DEFAULT_BLOCKREPORT_TIME)).start();
+				dataNode.stub.closeAllBlocks();
 			} catch (RemoteException e) {
 				LOGGER.debug(e);
 			}
 		}
 		else
-			LOGGER.info(dataNodeImage + " connected");
+			LOGGER.info(dataNode + " connected");
+		
+		blockReportReceiver.getBlockReportFrom(dataNode);
 	}
 
-	public void dataNodeDisconnected(DataNodeImage dataNodeImage) {
-		if (connectedDataNodes.remove(dataNodeImage))
-			LOGGER.info(dataNodeImage + " disconnected");
+	public void receiveBlockReport(DataNodeImage from, BlockReport blockReport) {
+		removeReferencesToDataNodeFromBlockToDataNodeMap(from);
+		
+		for (long blockID : blockReport.blockIDs) {
+			Set<DataNodeImage> dataNodes = blockToDataNodeMap.get(blockID);
+			if (dataNodes == null)
+				dataNodes = new HashSet<>();
+			dataNodes.add(from);
+		}
+		
+		dataNodeToBlockMap.put(from, blockReport.blockIDs);
+	}
+
+	public void dataNodeDisconnected(DataNodeImage dataNode) {
+		if (connectedDataNodes.remove(dataNode))
+			LOGGER.info(dataNode + " disconnected");
+		
+		removeReferencesToDataNodeFromBlockToDataNodeMap(dataNode);
+	}
+	
+	private void removeReferencesToDataNodeFromBlockToDataNodeMap(DataNodeImage dataNode) {
+		Set<Long> oldBlocks = dataNodeToBlockMap.get(dataNode);
+		if (oldBlocks != null) {
+			for (long oldBlock : oldBlocks) {
+				Set<DataNodeImage> dataNodes = blockToDataNodeMap.get(oldBlock);
+				if (dataNodes != null) {
+					dataNodes.remove(dataNode);
+					if (dataNodes.isEmpty())
+						blockToDataNodeMap.remove(dataNodes);
+				}
+			}
+		}
 	}
 	
 	private RemoteNameNode getStub() throws RemoteException {

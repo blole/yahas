@@ -63,5 +63,6 @@ public class BlockManager extends HashMap<Long, Block> {
 				put(id, new Block(id, file, hashFile, this));
 			}
 		}
+		LOGGER.info(String.format("Read %d blocks from disk.", size()));
 	}
 }

@@ -9,9 +9,6 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -28,29 +25,22 @@ import common.protocols.RemoteDataNode;
 public class DataNode implements RemoteDataNode {
 
 	private static final String BASE_BLOCK_PATH = "blocks/";
-	private static final String ID_FILE_NAME = "id.txt";
 	public final String pathBaseDir;
-	public final String pathBlocks;
 
 	private static final Logger LOGGER = Logger.getLogger(DataNode.class
 			.getCanonicalName());
 
 	public final int id;
+	public final BlockManager blocks;
 	private HeartBeatSender heartBeatSender;
-	public final HashMap<Long, Block> openBlocks = new HashMap<>();
-
 	private DataNodeNameNodeProtocol nameNode;
-	// Consist of a List of Blocks and it's hash which is held by a DataNode;
-	private BlockReport blockReport;
-	private ArrayList<Long> listOfBlocks = new ArrayList<Long>();
 
 	public DataNode(int id, String baseDir, DataNodeNameNodeProtocol nameNode,
 			InetSocketAddress nameNodeHeartBeatSocketAddress) {
 		this.id = id;
 		this.nameNode = nameNode;
-		this.pathBaseDir = baseDir; // String.format("../datanode%d/", id);
-		this.pathBlocks = baseDir + BASE_BLOCK_PATH;
-		this.blockReport = new BlockReport();
+		this.pathBaseDir = baseDir;
+		this.blocks = new BlockManager(baseDir + BASE_BLOCK_PATH);
 
 		try {
 			heartBeatSender = new HeartBeatSender(
@@ -61,6 +51,8 @@ public class DataNode implements RemoteDataNode {
 					e.getLocalizedMessage());
 			System.exit(1);
 		}
+		
+		blocks.readFromDisk();
 	}
 
 	public void start() {
@@ -68,44 +60,49 @@ public class DataNode implements RemoteDataNode {
 		LOGGER.debug("Sending HeartBeats every "
 				+ heartBeatSender.getInterval() + " ms");
 	}
-
+	
+	
+	
+	
+	
 	@Override
 	public RemoteBlock createBlock(long blockID) throws RemoteException,
 			RemoteBlockAlreadyExistsException {
-		return Block.create(blockID, this).getStub();
+		Block block = blocks.get(blockID);
+		if (block != null)
+			throw new RemoteBlockAlreadyExistsException();
+		return blocks.newBlock(blockID).getStub();
 	}
 
 	@Override
 	public RemoteBlock openBlock(long blockID) throws RemoteException,
 			RemoteBlockAlreadyOpenException, RemoteBlockNotFoundException {
-		return Block.get(blockID, this).getStub();
+		Block block = blocks.get(blockID);
+		if (block == null)
+			throw new RemoteBlockNotFoundException();
+		if (block.isOpen())
+			throw new RemoteBlockAlreadyOpenException();
+		return block.getStub();
 	}
 
 	@Override
 	public RemoteBlock openOrCreateBlock(long blockID) throws RemoteException,
 			RemoteBlockAlreadyOpenException {
-		return Block.openOrCreate(blockID, this).getStub();
+		Block block = blocks.get(blockID);
+		if (block == null)
+			block = blocks.newBlock(blockID);
+		if (block.isOpen())
+			throw new RemoteBlockAlreadyOpenException();
+		return block.getStub();
 	}
-
-	public void addBlockList(long blockId) {
-		LOGGER.debug("Adding Block " + blockId);
-		listOfBlocks.add(blockId);
-
-	}
+	
+	
+	
+	
 
 	@Override
 	public BlockReport getBlockReport() throws RemoteException {
-		
-
-		for (long id : listOfBlocks) {
-			// TODO:Get the block with ID and Match the hash
-			// Block.get(blockID, dataNode)
-//			LOGGER.debug("Added to Block " + id + " to Block Report ");
-			blockReport.addBlockIds(id);
-		}
-		return blockReport;
-
-		
+		return blocks.getBlockReport();
 	}
 
 	public RemoteDataNode getStub() throws RemoteException {
@@ -152,7 +149,7 @@ public class DataNode implements RemoteDataNode {
 	}
 
 	public static void saveID(String baseDir, int id) {
-		File idFile = new File(baseDir + ID_FILE_NAME);
+		File idFile = new File(baseDir+Constants.ID_FILE_NAME);
 		idFile.getParentFile().mkdirs();
 		try {
 			idFile.createNewFile();
@@ -168,7 +165,7 @@ public class DataNode implements RemoteDataNode {
 	}
 
 	public static int getSavedID(String baseDir) {
-		File idFile = new File(baseDir + ID_FILE_NAME);
+		File idFile = new File(baseDir+Constants.ID_FILE_NAME);
 		if (idFile.exists()) {
 			try {
 				FileReader reader = new FileReader(idFile);
@@ -203,5 +200,11 @@ public class DataNode implements RemoteDataNode {
 			System.exit(1);
 		}
 		return 0; // never executed;
+	}
+
+	@Override
+	public void closeAllBlocks() {
+		for (Block block : blocks.values())
+			block.forceClose();
 	}
 }

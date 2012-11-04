@@ -12,7 +12,6 @@ import org.apache.log4j.Logger;
 
 import client.YAHASFile;
 
-import common.BlockReport;
 import common.Constants;
 import common.RMIHelper;
 import common.exceptions.RemoteDirNotFoundException;
@@ -25,6 +24,7 @@ import common.protocols.RemoteNameNode;
 public class NameNode extends RemoteServer implements RemoteNameNode {
 	private static final long serialVersionUID = -8076847401609606850L;
 	private Random randomIDgenerator = new Random();
+	private HashSet<DataNodeImage> allEverConnectedDataNodes = new HashSet<>();
 	private HashSet<DataNodeImage> connectedDataNodes = new HashSet<>();
 	private HeartBeatReceiver heartBeatReceiver;
 	private BlockReportReceiver blkReportReceiver;
@@ -134,12 +134,19 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	public void dataNodeConnected(DataNodeImage dataNodeImage) {
 		connectedDataNodes.add(dataNodeImage);
-		LOGGER.info( dataNodeImage + " connected\n" );
-		LOGGER.info( "Added "+  dataNodeImage + " ConnectedDataNode List\n" );
-	
-		//Spawn a Thread for asking Block Report 
-		
-
+		if (allEverConnectedDataNodes.add(dataNodeImage)) {
+			LOGGER.info(dataNodeImage + " connected for the first time");
+			try {
+				dataNodeImage.stub.closeAllBlocks();
+				//for (long blockID : dataNodeImage.stub.getBlockReport().blockIDs)
+				//Spawn a Thread for asking Block Report
+				//new Thread(new BlockReportReceiver(this, dataNodeImage, Constants.DEFAULT_BLOCKREPORT_TIME)).start();
+			} catch (RemoteException e) {
+				LOGGER.debug(e);
+			}
+		}
+		else
+			LOGGER.info(dataNodeImage + " connected");
 	}
 
 	public void dataNodeDisconnected(DataNodeImage dataNodeImage) {

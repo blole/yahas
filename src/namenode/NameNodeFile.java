@@ -4,6 +4,8 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import common.Action;
 import common.Constants;
 import common.LocatedBlock;
@@ -12,6 +14,8 @@ import common.TimeoutHashSet;
 import common.protocols.RemoteFile;
 
 public class NameNodeFile implements RemoteFile {
+	private static final Logger LOGGER = Logger.getLogger(
+			NameNodeFile.class.getCanonicalName());
 	
 	private static TimeoutHashSet<NameNodeFile> leasedFiles = 
 			new TimeoutHashSet<>(Constants.DEFAULT_FILE_LEASE_TIME, new Action<NameNodeFile>() {
@@ -41,7 +45,8 @@ public class NameNodeFile implements RemoteFile {
 		this.name = name;
 		this.replicationFactor = replicationFactor;
 		this.accessed();
-		System.out.printf("File '%s' opened.\n", name);
+		
+		LOGGER.debug(String.format("File '%s' opened.\n", name));
 	}
 	
 	public void setParentDir(NameNodeDir parentDir) {
@@ -56,7 +61,8 @@ public class NameNodeFile implements RemoteFile {
 	public void delete() throws RemoteException {
 		if (parentDir != null)
 			parentDir.removeFile(this);
-		System.out.printf("File '%s' deleted.\n", name);
+		
+		LOGGER.debug(String.format("File '%s' deleted.\n", name));
 	}
 
 	@Override
@@ -68,7 +74,8 @@ public class NameNodeFile implements RemoteFile {
 		for (LocatedBlock block : blocks)
 			block.close();
 		
-		System.out.printf("File '%s' closed beacuse %s.\n", name, timedOut?"lease expired":"of remote call");
+		LOGGER.debug(String.format("File '%s' closed beacuse %s.\n",
+				name, timedOut?"lease expired":"of remote call"));
 	}
 
 	@Override

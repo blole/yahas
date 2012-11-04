@@ -1,20 +1,11 @@
 package common;
 
-import java.util.ArrayList;
+import java.util.Set;
 
 public class BlockReport {
+	public Set<Long> blockIDs;
 	
-	ArrayList<Long> blocksIds = new ArrayList<Long>();
-	
-	
-	public void addBlockIds(long blockId){
-		blocksIds.add(blockId);
-		
+	public BlockReport(Set<Long> blockIDs) {
+		this.blockIDs = blockIDs;
 	}
-	
-	public ArrayList<Long> getBlockIds(){
-		return blocksIds;
-	}
-	
-	
 }

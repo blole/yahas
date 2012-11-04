@@ -2,7 +2,6 @@ package common.protocols;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
 
 import common.BlockReport;
 
@@ -21,5 +20,12 @@ public interface NameNodeDataNodeProtocol extends Remote {
 	 * @throws RemoteException
 	 */
 	BlockReport getBlockReport() throws RemoteException;
-
+	
+	/**
+	 * Forcefully closes all opened blocks on the DataNode,
+	 * used when the NameNode restarts. 
+	 * 
+	 * @throws RemoteException
+	 */
+	void closeAllBlocks() throws RemoteException;
 }

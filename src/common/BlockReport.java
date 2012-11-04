@@ -7,11 +7,15 @@ import datanode.Block;
 public class BlockReport {
 	
 	ArrayList<Long> blocksIds = new ArrayList<Long>();
-	ArrayList<String> hashValues = new ArrayList<String>();
 	
-	public void addBlockReport(long blockId,String hashValue){
+	
+	public void addBlockReport(long blockId){
 		blocksIds.add(blockId);
-		hashValues.add(hashValue);
+		
+	}
+	
+	public ArrayList<Long> getBlockIds(){
+		return blocksIds;
 	}
 	
 	

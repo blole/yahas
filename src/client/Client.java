@@ -11,9 +11,9 @@ import common.protocols.ClientNameNodeProtocol;
 
 public class Client {
 	public Client(ClientNameNodeProtocol nameNode) {
-		YAHASFile file = null;
+	YAHASFile file = null;
 		try {
-			YAHASFile file = nameNode.createFile("/lol2", (byte) 3);
+			file = nameNode.createFile("/lol3", (byte) 3);
 			file.write("data here Goivnd 123");
 			//file.delete();
 		} catch (RemoteException e) {

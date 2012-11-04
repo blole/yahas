@@ -111,11 +111,14 @@ public class Block implements RemoteBlock {
 			FileWriter hashWriter = new FileWriter(hashFile);
 			String hashVal = DigestUtils.md5Hex(data);
 			hashWriter.append(hashVal);
+			hashWriter.close();
 			LOGGER.debug("Calculated MD5 Hash of " + data + "as " + hashVal);
 			LOGGER.debug("Updating BlockReport...");
 			//Add to the DataNodes Block Report
-			dataNode.setBlockReport(blockID, hashVal);
-			hashWriter.close();
+			//dataNode.setBlockReport(blockID, hashVal);
+			LOGGER.debug("DataNode " +  dataNode.id);
+			dataNode.addBlockList(blockID);
+
 			
 			
 

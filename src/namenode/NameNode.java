@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import client.YAHASFile;
 
+import common.BlockReport;
 import common.Constants;
 import common.RMIHelper;
 import common.exceptions.RemoteDirNotFoundException;
@@ -133,7 +134,9 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		connectedDataNodes.add(dataNodeImage);
 		LOGGER.info( dataNodeImage + " connected\n" );
 		LOGGER.info( "Added "+  dataNodeImage + " ConnectedDataNode List\n" );
-		//TODO: spawn this as a new thread.
+	
+		//Spawn a Thread for asking Block Report 
+		new Thread(new BlockReportReceiver(this, dataNodeImage, Constants.DEFAULT_BLOCKREPORT_TIME)).start();
 //		Set<BlockImage> blocks;
 //		try {
 //			blocks = dataNodeImage.getBlocks();

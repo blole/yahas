@@ -29,11 +29,6 @@ public class DataNodeImage {
 	
 	
 	@Override
-	public String toString() {
-		return String.format("[DataNodeImage %s]", getRMIAddress());
-	}
-	
-	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
@@ -49,5 +44,10 @@ public class DataNodeImage {
 	public int hashCode() {
 		return id;
 		//return 997 * id ^ 991 * receivedHearbeatSocketAddress.hashCode();
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("[DataNode "+id+"]");
 	}
 }

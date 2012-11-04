@@ -21,7 +21,7 @@ public class NameNodeFile implements RemoteFile {
 			new TimeoutHashSet<>(Constants.DEFAULT_FILE_LEASE_TIME, new Action<NameNodeFile>() {
 				@Override
 				public void execute(NameNodeFile file) {
-					file.realClose(true);
+					file.actualClose(true);
 				}
 			});
 	
@@ -68,12 +68,9 @@ public class NameNodeFile implements RemoteFile {
 	@Override
 	public void close() throws RemoteException {
 		leasedFiles.remove(this);
-		realClose(false);
+		actualClose(false);
 	}
-	private void realClose(boolean timedOut) {
-		for (LocatedBlock block : blocks)
-			block.close();
-		
+	private void actualClose(boolean timedOut) {
 		LOGGER.debug(String.format("File '%s' closed beacuse %s.",
 				name, timedOut?"lease expired":"of remote call"));
 	}

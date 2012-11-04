@@ -10,7 +10,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.log4j.Logger;
 
 import common.RMIHelper;
-import common.ReplicationPipeline;
+import common.ReplicationHelper;
 import common.protocols.DataNodeDataNodeProtocol;
 import common.protocols.RemoteBlock;
 
@@ -26,9 +26,11 @@ public class Block implements RemoteBlock {
 	private File hashFile;
 	private boolean open;
 
-	private ReplicationPipeline replicationPipeline;
-
 	private BlockManager manager;
+
+
+
+	private RemoteBlock stub;
 	
 	
 	
@@ -65,7 +67,6 @@ public class Block implements RemoteBlock {
 		this.file = file;
 		this.hashFile = hashFile;
 		this.manager = manager;
-		replicationPipeline = new ReplicationPipeline(blockID);
 	}
 	
 	
@@ -74,57 +75,32 @@ public class Block implements RemoteBlock {
 	
 	@Override
 	public void write(String data) throws RemoteException {
+		tryToWriteToFile(data);
+	}
+	
+	@Override
+	public void writePipeline(String data,
+			List<DataNodeDataNodeProtocol> dataNodes) throws RemoteException {
+		tryToWriteToFile(data);
+		ReplicationHelper.write(data, blockID, dataNodes);
+	}
+
+	private void tryToWriteToFile(String data) throws RemoteException {
 		try {
-			writeToFile(data);
+			FileWriter writer = new FileWriter(file);
+			writer.append(data);
+			writer.close();
+
+			String hashVal = DigestUtils.md5Hex(data);
+			FileWriter hashWriter = new FileWriter(hashFile);
+			hashWriter.write(""+hashVal);
+			hashWriter.close();
+			LOGGER.debug("Calculated MD5 Hash of " + data + " as " + hashVal);
 		} catch (IOException e) {
 			String errormessage = "Error while appending to block "+blockID;
 			LOGGER.error(errormessage, e);
 			throw new RemoteException(errormessage, e);
 		}
-		replicationPipeline.write(data);
-	}
-
-	private void writeToFile(String data) throws IOException {
-		FileWriter writer = new FileWriter(file);
-		writer.append(data);
-		writer.close();
-
-		String hashVal = DigestUtils.md5Hex(data);
-		FileWriter hashWriter = new FileWriter(hashFile);
-		hashWriter.write(""+hashVal);
-		hashWriter.close();
-		LOGGER.debug("Calculated MD5 Hash of " + data + "as " + hashVal);
-	}
-	
-	@Override
-	public void replicateTo(List<DataNodeDataNodeProtocol> dataNodes)
-			throws RemoteException {
-		replicationPipeline.open(dataNodes);
-	}
-	
-	@Override
-	public void close() throws RemoteException {
-		forceClose();
-		replicationPipeline.close();
-	}
-	
-	
-	
-	
-	
-	public boolean isOpen() {
-		return open;
-	}
-	
-	public void open() {
-		open = true;
-		LOGGER.debug(toString()+" opened.");
-	}
-
-	public void forceClose() {
-		if (open)
-			LOGGER.debug(toString()+" closed.");
-		open = false;
 	}
 	
 	
@@ -153,7 +129,9 @@ public class Block implements RemoteBlock {
 	}
 
 	public RemoteBlock getStub() throws RemoteException {
-		return (RemoteBlock) RMIHelper.getStub(this);
+		if (stub == null)
+			stub = (RemoteBlock) RMIHelper.getStub(this);
+		return stub;
 	}
 
 	@Override

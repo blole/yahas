@@ -90,27 +90,22 @@ public class DataNode implements RemoteDataNode {
 	public void addBlockList(long blockId) {
 		LOGGER.debug("Adding Block " + blockId);
 		listOfBlocks.add(blockId);
-		
+
 	}
 
 	@Override
 	public BlockReport getBlockReport() throws RemoteException {
-		// Get All Blocks.
-		// Check Hash Of Block
-		// If Hash Matches add to BlockReport
-		// TODO: only add blocks which matches the hash
-		// TODO: To check added all the Blocks
-		if (listOfBlocks.size() > 0)
-			for (long id : listOfBlocks) {
-				// TODO:Get the block with ID and Match the hash
-//				Block.get(blockID, dataNode)
-				LOGGER.debug("Added to Block " + id + " to Block Report ");
-				blockReport.addBlockIds(id);
-			}
+		
+
+		for (long id : listOfBlocks) {
+			// TODO:Get the block with ID and Match the hash
+			// Block.get(blockID, dataNode)
+//			LOGGER.debug("Added to Block " + id + " to Block Report ");
+			blockReport.addBlockIds(id);
+		}
 		return blockReport;
 
-		// return blockReport;
-		// return new BlockReport();
+		
 	}
 
 	public RemoteDataNode getStub() throws RemoteException {

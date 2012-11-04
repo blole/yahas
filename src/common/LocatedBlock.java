@@ -11,24 +11,14 @@ public class LocatedBlock implements Serializable {
 	private final long blockID;
 	private List<RemoteDataNode> remoteDataNodes;
 	
-	private ReplicationPipeline replicationPipeline;
-	
 	public LocatedBlock(long blockID, List<RemoteDataNode> dataNodes) {
 		this.blockID = blockID;
 		this.remoteDataNodes = dataNodes;
-		replicationPipeline = new ReplicationPipeline(blockID);
 	}
 	
 	public void write(String data) throws AllDataNodesAreDeadException {
-		boolean a = replicationPipeline.open(remoteDataNodes);
-		boolean b = replicationPipeline.write(data);
-		if (!a || !b)
+		if (!ReplicationHelper.write(data, blockID, remoteDataNodes))
 			throw new AllDataNodesAreDeadException();
-		replicationPipeline.close();
-	}
-	
-	public void close() {
-		replicationPipeline.close();
 	}
 	
 	public int getBytesLeft() {

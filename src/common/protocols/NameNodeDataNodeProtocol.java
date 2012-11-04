@@ -20,12 +20,4 @@ public interface NameNodeDataNodeProtocol extends Remote {
 	 * @throws RemoteException
 	 */
 	BlockReport getBlockReport() throws RemoteException;
-	
-	/**
-	 * Forcefully closes all opened blocks on the DataNode,
-	 * used when the NameNode restarts. 
-	 * 
-	 * @throws RemoteException
-	 */
-	void closeAllBlocks() throws RemoteException;
 }

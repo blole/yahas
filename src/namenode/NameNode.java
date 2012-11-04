@@ -27,7 +27,6 @@ import common.protocols.RemoteNameNode;
 public class NameNode extends RemoteServer implements RemoteNameNode {
 	private static final long serialVersionUID = -8076847401609606850L;
 	private Random randomIDgenerator = new Random();
-	private HashSet<DataNodeImage> allEverConnectedDataNodes = new HashSet<>();
 	private HashSet<DataNodeImage> connectedDataNodes = new HashSet<>();
 	private final HashMap<DataNodeImage, Set<Long>> dataNodeToBlockMap = new HashMap<>();
 	private final HashMap<Long, Set<DataNodeImage>> blockToDataNodeMap = new HashMap<>();
@@ -149,16 +148,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	public void dataNodeConnected(DataNodeImage dataNode) {
 		connectedDataNodes.add(dataNode);
-		if (allEverConnectedDataNodes.add(dataNode)) {
-			LOGGER.info(dataNode + " connected for the first time since startup");
-			try {
-				dataNode.stub.closeAllBlocks();
-			} catch (RemoteException e) {
-				LOGGER.debug(e);
-			}
-		}
-		else
-			LOGGER.info(dataNode + " connected");
+		LOGGER.info(dataNode + " connected");
 		
 		blockReportReceiver.getBlockReportFrom(dataNode);
 	}

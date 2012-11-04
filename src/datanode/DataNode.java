@@ -16,7 +16,6 @@ import common.BlockReport;
 import common.Constants;
 import common.RMIHelper;
 import common.exceptions.RemoteBlockAlreadyExistsException;
-import common.exceptions.RemoteBlockAlreadyOpenException;
 import common.exceptions.RemoteBlockNotFoundException;
 import common.protocols.DataNodeNameNodeProtocol;
 import common.protocols.RemoteBlock;
@@ -72,34 +71,25 @@ public class DataNode implements RemoteDataNode {
 		if (block != null)
 			throw new RemoteBlockAlreadyExistsException();
 		
-		block = blocks.newBlock(blockID);
-		block.open();
-		return block.getStub();
+		return blocks.newBlock(blockID).getStub();
 	}
 
 	@Override
-	public RemoteBlock openBlock(long blockID) throws RemoteException,
-			RemoteBlockAlreadyOpenException, RemoteBlockNotFoundException {
+	public RemoteBlock getBlock(long blockID) throws RemoteException,
+			RemoteBlockNotFoundException {
 		Block block = blocks.get(blockID);
 		if (block == null)
 			throw new RemoteBlockNotFoundException();
-		if (block.isOpen())
-			throw new RemoteBlockAlreadyOpenException();
 		
-		block.open();
 		return block.getStub();
 	}
 
 	@Override
-	public RemoteBlock openOrCreateBlock(long blockID) throws RemoteException,
-			RemoteBlockAlreadyOpenException {
+	public RemoteBlock getOrCreateBlock(long blockID) throws RemoteException {
 		Block block = blocks.get(blockID);
 		if (block == null)
 			block = blocks.newBlock(blockID);
-		if (block.isOpen())
-			throw new RemoteBlockAlreadyOpenException();
 		
-		block.open();
 		return block.getStub();
 	}
 	
@@ -207,11 +197,5 @@ public class DataNode implements RemoteDataNode {
 			System.exit(1);
 		}
 		return 0; // never executed;
-	}
-
-	@Override
-	public void closeAllBlocks() {
-		for (Block block : blocks.values())
-			block.forceClose();
 	}
 }

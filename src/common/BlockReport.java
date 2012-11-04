@@ -2,14 +2,12 @@ package common;
 
 import java.util.ArrayList;
 
-import datanode.Block;
-
 public class BlockReport {
 	
 	ArrayList<Long> blocksIds = new ArrayList<Long>();
 	
 	
-	public void addBlockReport(long blockId){
+	public void addBlockIds(long blockId){
 		blocksIds.add(blockId);
 		
 	}

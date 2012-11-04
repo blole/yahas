@@ -137,12 +137,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 		//Spawn a Thread for asking Block Report 
 		new Thread(new BlockReportReceiver(this, dataNodeImage, Constants.DEFAULT_BLOCKREPORT_TIME)).start();
-//		Set<BlockImage> blocks;
-//		try {
-//			blocks = dataNodeImage.getBlocks();
-//		} catch (IOException | InvalidPacketType | UnexpectedPacketType e) {
-//			e.printStackTrace();
-//		}
+
 	}
 
 	public void dataNodeDisconnected(DataNodeImage dataNodeImage) {

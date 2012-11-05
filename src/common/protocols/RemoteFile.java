@@ -5,6 +5,7 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 import common.LocatedBlock;
+import common.exceptions.RemoteFileAlreadyOpenException;
 
 /**
  * Represents a Remote File in YAHAS system. 
@@ -29,6 +30,15 @@ public interface RemoteFile extends Remote {
 	 * @throws RemoteException
 	 */
 	LocatedBlock getLastBlock() throws RemoteException;
+
+	/**
+	 * Get The a Block With Writing
+	 * @return
+	 * @throws RemoteException
+	 */
+	LocatedBlock getWritingBlock() throws RemoteException;
+	
+	void open() throws RemoteException, RemoteFileAlreadyOpenException;
 
 	/**
 	 * Function to renew the lease on the file
@@ -68,12 +78,4 @@ public interface RemoteFile extends Remote {
 	 * @throws RemoteException
 	 */
 	List<LocatedBlock> getBlocks() throws RemoteException;
-
-	/**
-	 * Get The a Block With Writing
-	 * @return
-	 * @throws RemoteException
-	 */
-	LocatedBlock getWritingBlock() throws RemoteException;
-
 }

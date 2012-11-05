@@ -24,7 +24,6 @@ public class Block implements RemoteBlock {
 	public final long blockID;
 	private File file;
 	private File hashFile;
-	private boolean open;
 
 	private BlockManager manager;
 

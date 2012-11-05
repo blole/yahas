@@ -7,18 +7,21 @@ import namenode.NameNodeFile;
 
 import common.LocatedBlock;
 import common.exceptions.AllDataNodesAreDeadException;
+import common.exceptions.RemoteFileAlreadyOpenException;
 import common.protocols.RemoteFile;
 
 
 public class YAHASFile implements Serializable {
 	private static final long serialVersionUID = -1422394544577820093L;
 	private RemoteFile remoteFile;
+	private String name;
 	
 	public YAHASFile(NameNodeFile file) throws RemoteException {
-		this(file.getStub());
+		this(file.getName(), file.getStub());
 	}
 	
-	public YAHASFile(RemoteFile remoteFile) {
+	public YAHASFile(String name, RemoteFile remoteFile) {
+		this.name = name;
 		this.remoteFile = remoteFile;
 	}
 	
@@ -42,6 +45,14 @@ public class YAHASFile implements Serializable {
 		}
 	}
 	
+	public void open() throws RemoteException, RemoteFileAlreadyOpenException {
+		remoteFile.open();
+	}
+	
+	public void renewLease() throws RemoteException {
+		remoteFile.renewLease();
+	}
+	
 	public void close() throws RemoteException {
 		remoteFile.close();
 	}
@@ -54,5 +65,9 @@ public class YAHASFile implements Serializable {
 	
 	public void delete() throws RemoteException {
 		remoteFile.delete();
+	}
+	
+	public String getName() {
+		return name;
 	}
 }

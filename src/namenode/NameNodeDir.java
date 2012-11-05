@@ -5,24 +5,31 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
+import client.YAHASFile;
+
 import common.RMIHelper;
 import common.exceptions.RemoteDirNotEmptyException;
 import common.exceptions.RemoteDirNotFoundException;
 import common.exceptions.RemoteFileNotFoundException;
 import common.protocols.RemoteDir;
-import common.protocols.RemoteFile;
 
 public class NameNodeDir implements RemoteDir {
+	private static final Logger LOGGER = Logger.getLogger(
+			NameNodeDir.class.getCanonicalName());
+	
 	private String name;
 	private NameNodeDir parent;
 	private final HashMap<String, NameNodeDir> subDirs = new HashMap<>();
 	private final HashMap<String, NameNodeFile> files = new HashMap<>();
+	private RemoteDir stub;
 	
 	/**
 	 * Create a root dir.
 	 */
 	public NameNodeDir() {
-		this.name = "";
+		this("");
 		this.parent = this;
 	}
 	
@@ -32,6 +39,11 @@ public class NameNodeDir implements RemoteDir {
 	 */
 	public NameNodeDir(String name) {
 		this.name = name;
+		try {
+			this.stub = (RemoteDir) RMIHelper.getStub(this);
+		} catch (RemoteException e) {
+			LOGGER.error("Error creating dir "+name, e);
+		}
 	}
 	
 	
@@ -60,18 +72,27 @@ public class NameNodeDir implements RemoteDir {
 		}
 	}
 	
-	public void addDir(String path, boolean createParentsAsNeeded) {
+	/**
+	 * 
+	 * @param path
+	 * @param createParentsAsNeeded
+	 * @return the newly created dir, or null if no dir was created because
+	 * there were non-existing dirs in the path.
+	 * Never returns null if {@code createParentsAsNeeded} is set to true.  
+	 */
+	public NameNodeDir addDir(String path, boolean createParentsAsNeeded) {
 		String[] s = path.split("/", 2);
 		if (s.length == 1)
-			addSubDir(path);
+			return addSubDir(path);
 		else {
 			NameNodeDir subDir = subDirs.get(s[0]);
 			if (subDir != null)
-				subDir.addDir(s[1], createParentsAsNeeded);
+				return subDir.addDir(s[1], createParentsAsNeeded);
 			else if (createParentsAsNeeded) {
-				subDir = this.addSubDir(s[0]);
-				subDir.addDir(s[1], createParentsAsNeeded);
+				return addSubDir(s[0]).addDir(s[1], createParentsAsNeeded);
 			}
+			else
+				return null;
 		}
 	}
 	
@@ -122,18 +143,6 @@ public class NameNodeDir implements RemoteDir {
 	
 	
 	
-	
-	public String getName() {
-		return name;
-	}
-
-	public RemoteDir getStub() throws RemoteException {
-		return (RemoteDir) RMIHelper.getStub(this);
-	}
-	
-	
-	
-	
 
 	public void removeFile(NameNodeFile file) {
 		files.remove(file);
@@ -155,10 +164,11 @@ public class NameNodeDir implements RemoteDir {
 	}
 	
 	@Override
-	public List<RemoteFile> getFiles() throws RemoteException {
-		List<RemoteFile> files = new ArrayList<>();
+	public List<YAHASFile> getFiles() throws RemoteException {
+		List<YAHASFile> files = new ArrayList<>();
 		for (NameNodeFile file : this.files.values())
-			files.add(file.getStub());
+			files.add(file.getYAHASFile());
+		LOGGER.debug(String.format("Listed files in %s", this));
 		return files;
 	}
 
@@ -167,6 +177,24 @@ public class NameNodeDir implements RemoteDir {
 		List<RemoteDir> subDirs = new ArrayList<>();
 		for (NameNodeDir childDir : this.subDirs.values())
 			subDirs.add(childDir.getStub());
+		LOGGER.debug(String.format("Listed sub-directories in %s", this));
 		return subDirs;
+	}
+	
+	
+	
+	
+	
+	public String getName() {
+		return name;
+	}
+
+	@Override
+	public String toString() {
+		return getName();
+	}
+	
+	public RemoteDir getStub() throws RemoteException {
+		return stub;
 	}
 }

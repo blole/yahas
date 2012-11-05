@@ -49,7 +49,9 @@ public interface ClientNameNodeProtocol extends Remote {
 	 * @param name
 	 * @param createParentsAsNeeded
 	 * @return
-	 * 	Returns a handleToRemoteDir
+	 * 	Returns a handleToRemoteDir, or null if one of the parents
+	 *  in the path did not exist. Never returns null if
+	 *  createParentsAsNeeded is set to true.
 	 * @throws RemoteException
 	 */
 	RemoteDir createDir(String name, boolean createParentsAsNeeded)

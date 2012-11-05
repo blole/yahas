@@ -4,6 +4,8 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
 
+import client.YAHASFile;
+
 import common.exceptions.RemoteDirNotEmptyException;
 import common.exceptions.RemoteDirNotFoundException;
 
@@ -36,7 +38,7 @@ public interface RemoteDir extends Remote {
 	 * @return
 	 * @throws RemoteException
 	 */
-	List<RemoteFile> getFiles() throws RemoteException;
+	List<YAHASFile> getFiles() throws RemoteException;
 
 	/**
 	 * Get the Child Directories of a particular Directory

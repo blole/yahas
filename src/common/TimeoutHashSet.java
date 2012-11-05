@@ -30,9 +30,10 @@ public class TimeoutHashSet<K>  {
 	 * {@code onRemoval}.
 	 * 
 	 * @param element
+	 * @return true if the element was in the set.
 	 */
-	public void remove(K element) {
-		hashMap.remove(element);
+	public boolean remove(K element) {
+		return hashMap.remove(element) != null;
 	}
 	
 	public boolean contains(K element) {

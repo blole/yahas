@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -26,7 +25,6 @@ import common.protocols.RemoteNameNode;
 
 public class NameNode extends RemoteServer implements RemoteNameNode {
 	private static final long serialVersionUID = -8076847401609606850L;
-	private Random randomIDgenerator = new Random();
 	private HashSet<DataNodeImage> connectedDataNodes = new HashSet<>();
 	private final HashMap<DataNodeImage, Set<Long>> dataNodeToBlockMap = new HashMap<>();
 	private final HashMap<Long, Set<DataNodeImage>> blockToDataNodeMap = new HashMap<>();
@@ -38,6 +36,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	private HeartBeatReceiver heartBeatReceiver;
 	private BlockReportReceiver blockReportReceiver;
 	private NameNodeDir root;
+	private int dataNodeIdCounter;
 	private int blockIdCounter;
 
 	private final static Logger LOGGER = Logger.getLogger(NameNode.class
@@ -47,6 +46,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		heartBeatReceiver = new HeartBeatReceiver(this, heartBeatPort);
 		blockReportReceiver = new BlockReportReceiver(this, Constants.DEFAULT_BLOCKREPORT_TIME);
 		root = new NameNodeDir();
+		dataNodeIdCounter = 0;
 		blockIdCounter = 0;
 	}
 	
@@ -54,19 +54,18 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		new Thread(heartBeatReceiver).start();
 		new Thread(blockReportReceiver).start();
 	
-		LOGGER.info("Server Ready");
 		LOGGER.info("Listening for HeartBeats on port "
 				+ heartBeatReceiver.getPort());
+		LOGGER.info("Server Ready\n");
 	
 	}
 	
 	@Override
-	public YAHASFile getFile(String path) throws RemoteException, RemoteFileNotFoundException, RemoteFileAlreadyOpenException {
-		NameNodeFile file = root.getFile(path);
-		if (file.isOpen())
-			throw new RemoteFileAlreadyOpenException();
-		else
-			return new YAHASFile(file.getStub());
+	public YAHASFile getFile(String path) throws RemoteException,
+			RemoteFileNotFoundException, RemoteFileAlreadyOpenException {
+		YAHASFile file = root.getFile(path).getYAHASFile();
+		LOGGER.debug(String.format("Served file '%s'", path));
+		return file;
 	}
 
 	@Override
@@ -80,46 +79,44 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		
 		
 		String dirs = path.substring(0, lastSlashIndex);
-	
 		String name = path.substring(lastSlashIndex);
-		
 		NameNodeFile file = new NameNodeFile(this, name, replicationFactor);
 		
 		root.getDir(dirs).addFile(file);
 		
-		return new YAHASFile(file.getStub());
+		LOGGER.debug(String.format("Created file '%s'", path));
+		return file.getYAHASFile();
 	}
 
 	@Override
 	public RemoteDir createDir(String path, boolean createParentsAsNeeded)
 			throws RemoteException {
-		root.addDir(path, createParentsAsNeeded);
-		return null;
+		NameNodeDir dir = root.addDir(path, createParentsAsNeeded);
+		LOGGER.debug(String.format("Created dir '%s'", path));
+		return dir.getStub();
 	}
 
 	@Override
 	public RemoteDir getDir(String path) throws RemoteException,
 			RemoteDirNotFoundException {
-		return root.getDir(path).getStub();
+		NameNodeDir dir = root.getDir(path);
+		LOGGER.debug(String.format("Served dir '%s'", path));
+		return dir.getStub();
 	}
-
+	
+	
+	
+	
+	
 	@Override
 	public int register() throws RemoteException {
-		int i;
-		do {
-			i = randomIDgenerator.nextInt();
-		} while (i<1);
-		return i;
+		return dataNodeIdCounter++;
 	}
 
 	@Override
 	public void blockReceived(long blockId) throws RemoteException {
 		// TODO Auto-generated method stub
 		
-	}
-
-	public HashSet<DataNodeImage> getConnectedDataNodes() {
-		return connectedDataNodes;
 	}
 	
 	@Override
@@ -132,18 +129,26 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	}
 
 	public List<RemoteDataNode> getAppropriateDataNodes(byte replicationFactor) {
-		// TODO
+		// TODO return APPROPRIATE DataNodes, not all
 		ArrayList<RemoteDataNode> list = new ArrayList<>();
 		for (DataNodeImage dataNode : connectedDataNodes) {
 			list.add(dataNode.stub);
 		}
 		return list;
 	}
-
+	
+	
+	
+	
+	
+	public HashSet<DataNodeImage> getConnectedDataNodes() {
+		return connectedDataNodes;
+	}
+	
 	public long getNewBlockID() {
 		return blockIdCounter++;
 	}
-
+	
 	
 	
 	
@@ -154,6 +159,13 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		blockReportReceiver.getBlockReportFrom(dataNode);
 	}
 
+	public void dataNodeDisconnected(DataNodeImage dataNode) {
+		if (connectedDataNodes.remove(dataNode))
+			LOGGER.info(dataNode + " disconnected");
+		
+		removeReferencesToDataNodeFromBlockToDataNodeMap(dataNode);
+	}
+	
 	public void receiveBlockReport(DataNodeImage from, BlockReport blockReport) {
 		removeReferencesToDataNodeFromBlockToDataNodeMap(from);
 		
@@ -167,13 +179,6 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		dataNodeToBlockMap.put(from, blockReport.blockIDs);
 	}
 
-	public void dataNodeDisconnected(DataNodeImage dataNode) {
-		if (connectedDataNodes.remove(dataNode))
-			LOGGER.info(dataNode + " disconnected");
-		
-		removeReferencesToDataNodeFromBlockToDataNodeMap(dataNode);
-	}
-	
 	private void removeReferencesToDataNodeFromBlockToDataNodeMap(DataNodeImage dataNode) {
 		Set<Long> oldBlocks = dataNodeToBlockMap.get(dataNode);
 		if (oldBlocks != null) {
@@ -187,6 +192,8 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 			}
 		}
 	}
+	
+	
 	
 	private RemoteNameNode getStub() throws RemoteException {
 		return (RemoteNameNode) RMIHelper.getStub(this);

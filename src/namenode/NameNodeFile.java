@@ -6,25 +6,27 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import client.YAHASFile;
+
 import common.Action;
 import common.Constants;
 import common.LocatedBlock;
 import common.RMIHelper;
 import common.TimeoutHashSet;
+import common.exceptions.RemoteFileAlreadyOpenException;
 import common.protocols.RemoteFile;
 
 public class NameNodeFile implements RemoteFile {
 	private static final Logger LOGGER = Logger.getLogger(
 			NameNodeFile.class.getCanonicalName());
 	
-	private static TimeoutHashSet<NameNodeFile> leasedFiles = 
+	private static final TimeoutHashSet<NameNodeFile> leasedFiles = 
 			new TimeoutHashSet<>(Constants.DEFAULT_FILE_LEASE_TIME, new Action<NameNodeFile>() {
 				@Override
 				public void execute(NameNodeFile file) {
-					file.actualClose(true);
+					file.closeForReal(true);
 				}
 			});
-	
 	
 	
 	
@@ -35,6 +37,7 @@ public class NameNodeFile implements RemoteFile {
 	private final ArrayList<LocatedBlock> blocks = new ArrayList<>();
 	private byte replicationFactor;
 	private NameNodeDir parentDir = null;
+	private YAHASFile yahasFile;
 
 
 
@@ -44,49 +47,65 @@ public class NameNodeFile implements RemoteFile {
 		this.nameNode = nameNode;
 		this.name = name;
 		this.replicationFactor = replicationFactor;
-		this.accessed();
 		
-		LOGGER.debug(String.format("File '%s' opened.", name));
+		try {
+			this.yahasFile = new YAHASFile(this);
+		} catch (RemoteException e) {
+			LOGGER.error("Error creating file "+name, e);
+		}
 	}
 	
 	public void setParentDir(NameNodeDir parentDir) {
 		this.parentDir = parentDir;
 	}
+	
+	
+	
+	
+	
+	@Override
+	public void open() throws RemoteException, RemoteFileAlreadyOpenException {
+		if (isOpen())
+			throw new RemoteFileAlreadyOpenException();
+		else {
+			LOGGER.debug(String.format("File '%s' opened.", name));
+			renewLeaseForReal();
+		}
+	}
 
-	private void accessed() {
+	@Override
+	public void renewLease() throws RemoteException {
+		renewLeaseForReal();
+	}
+	private void renewLeaseForReal() {
 		leasedFiles.addOrRefresh(this);
 	}
 
 	@Override
-	public void delete() throws RemoteException {
-		if (parentDir != null)
-			parentDir.removeFile(this);
-		
-		LOGGER.debug(String.format("File '%s' deleted.", name));
-	}
-
-	@Override
 	public void close() throws RemoteException {
-		leasedFiles.remove(this);
-		actualClose(false);
+		if (leasedFiles.remove(this)) {
+			closeForReal(false);
+		}
 	}
-	private void actualClose(boolean timedOut) {
+	private void closeForReal(boolean timedOut) {
 		LOGGER.debug(String.format("File '%s' closed beacuse %s.",
 				name, timedOut?"lease expired":"of remote call"));
 	}
-
+	
+	
+	
+	
+	
 	@Override
 	public LocatedBlock addBlock() throws RemoteException {
-		accessed();
 		LocatedBlock block = new LocatedBlock(nameNode.getNewBlockID(),
 				nameNode.getAppropriateDataNodes(replicationFactor));
 		blocks.add(block);
 		return block;
 	}
-
+	
 	@Override
 	public LocatedBlock getLastBlock() throws RemoteException {
-		accessed();
 		return blocks.get(blocks.size()-1);
 	}
 	
@@ -96,7 +115,6 @@ public class NameNodeFile implements RemoteFile {
 	 */
 	@Override
 	public LocatedBlock getWritingBlock() throws RemoteException {
-		accessed();
 		if (blocks.size() != 0 && getLastBlock().getBytesLeft() != 0)
 			return getLastBlock();
 		else
@@ -105,18 +123,24 @@ public class NameNodeFile implements RemoteFile {
 
 	@Override
 	public List<LocatedBlock> getBlocks() throws RemoteException {
-		accessed();
 		return null;
 	}
-
-	@Override
-	public void renewLease() throws RemoteException {
-		accessed();
-	}
-
+	
+	
+	
+	
+	
 	@Override
 	public void move(String filePathAndName) throws RemoteException {
-		accessed();
+		//TODO
+	}
+	
+	@Override
+	public void delete() throws RemoteException {
+		if (parentDir != null)
+			parentDir.removeFile(this);
+		
+		LOGGER.debug(String.format("File '%s' deleted.", name));
 	}
 	
 	
@@ -125,6 +149,10 @@ public class NameNodeFile implements RemoteFile {
 
 	public boolean isOpen() {
 		return leasedFiles.contains(this);
+	}
+	
+	public YAHASFile getYAHASFile() {
+		return yahasFile;
 	}
 	
 	public RemoteFile getStub() throws RemoteException {

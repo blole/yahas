@@ -38,6 +38,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	private HeartBeatReceiver heartBeatReceiver;
 	private BlockReportReceiver blockReportReceiver;
 	private NameNodeDir root;
+	private int blockIdCounter;
 
 	private final static Logger LOGGER = Logger.getLogger(NameNode.class
 			.getCanonicalName());
@@ -46,6 +47,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		heartBeatReceiver = new HeartBeatReceiver(this, heartBeatPort);
 		blockReportReceiver = new BlockReportReceiver(this, Constants.DEFAULT_BLOCKREPORT_TIME);
 		root = new NameNodeDir();
+		blockIdCounter = 0;
 	}
 	
 	private void start() {
@@ -139,8 +141,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	}
 
 	public long getNewBlockID() {
-		// TODO Auto-generated method stub
-		return 0;
+		return blockIdCounter++;
 	}
 
 	

@@ -26,7 +26,7 @@ public class RMIHelper {
 	public static void makeSureRegistryIsStarted(int port) {
 		try {
 			LocateRegistry.createRegistry(port);
-		LOGGER.error("Opps.. RMI Registry is not running. Please run RMI Registry ");
+		LOGGER.error("Opps.. rmiregistry is not running. Please run rmiregistry");
 		LOGGER.error("System Exiting !! ");
 			System.exit(1);
 		} catch (RemoteException e) {

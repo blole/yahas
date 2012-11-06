@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import common.RMIHelper;
 import common.exceptions.RemoteDirNotFoundException;
 import common.protocols.ClientNameNodeProtocol;
+import common.protocols.RemoteDir;
 
 
 public class Client {
@@ -29,13 +30,22 @@ public class Client {
 		try {
 			nameNode.createFile("hello", (byte)2);
 			nameNode.createFile("world", (byte)2);
-			for (YAHASFile f : nameNode.getDir("/").getFiles())
-				System.out.println(f.getName());
+			nameNode.createDir("dir1");
+			nameNode.createDirs("dir2/asd");
+			debugPrintDir("", nameNode.getDir("/"));
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (RemoteDirNotFoundException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void debugPrintDir(String prefix, RemoteDir dir) throws RemoteException {
+		System.out.println(prefix + dir.getPath());
+		for (RemoteDir subDir : dir.getSubDirs())
+			debugPrintDir(prefix+"  ", subDir);
+		for (YAHASFile file : dir.getFiles())
+			System.out.println(prefix+"-"+file.getName());
 	}
 	
 	

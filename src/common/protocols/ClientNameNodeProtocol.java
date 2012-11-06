@@ -53,10 +53,14 @@ public interface ClientNameNodeProtocol extends Remote {
 	 *  in the path did not exist. Never returns null if
 	 *  createParentsAsNeeded is set to true.
 	 * @throws RemoteException
+	 * @throws RemoteDirNotFoundException 
 	 */
-	RemoteDir createDir(String name, boolean createParentsAsNeeded)
+	RemoteDir createDir(String path)
+			throws RemoteException, RemoteDirNotFoundException;
+	
+	RemoteDir createDirs(String path)
 			throws RemoteException;
-
+	
 	/**
 	 * Gets and Existing Dir.
 	 * @param name

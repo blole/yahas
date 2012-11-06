@@ -35,7 +35,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 
 	private HeartBeatReceiver heartBeatReceiver;
 	private BlockReportReceiver blockReportReceiver;
-	private NameNodeDir root;
+	private final NameNodeRootDir root;
 	private int dataNodeIdCounter;
 	private int blockIdCounter;
 
@@ -45,7 +45,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	public NameNode(int heartBeatPort) {
 		heartBeatReceiver = new HeartBeatReceiver(this, heartBeatPort);
 		blockReportReceiver = new BlockReportReceiver(this, Constants.DEFAULT_BLOCKREPORT_TIME);
-		root = new NameNodeDir();
+		root = new NameNodeRootDir();
 		dataNodeIdCounter = 0;
 		blockIdCounter = 0;
 	}
@@ -89,9 +89,19 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	}
 
 	@Override
-	public RemoteDir createDir(String path, boolean createParentsAsNeeded)
-			throws RemoteException {
-		NameNodeDir dir = root.addDir(path, createParentsAsNeeded);
+	public RemoteDir createDir(String path) throws RemoteException, RemoteDirNotFoundException {
+		NameNodeDir dir = root.addDir(path, false);
+		if (dir == null)
+			throw new RemoteDirNotFoundException();
+		else {
+			LOGGER.debug(String.format("Created dir '%s'", path));
+			return dir.getStub();
+		}
+	}
+
+	@Override
+	public RemoteDir createDirs(String path) throws RemoteException {
+		NameNodeDir dir = root.addDir(path, true);
 		LOGGER.debug(String.format("Created dir '%s'", path));
 		return dir.getStub();
 	}

@@ -26,14 +26,6 @@ public class NameNodeDir implements RemoteDir {
 	private RemoteDir stub;
 	
 	/**
-	 * Create a root dir.
-	 */
-	public NameNodeDir() {
-		this("");
-		this.parent = this;
-	}
-	
-	/**
 	 * Create a regular dir.
 	 * @param name
 	 */
@@ -55,6 +47,7 @@ public class NameNodeDir implements RemoteDir {
 		file.setParentDir(this);
 	}
 	
+	@Override
 	public NameNodeFile getFile(String path) throws RemoteFileNotFoundException {
 		String[] s = path.split("/", 2);
 		if (s.length == 1) {
@@ -149,7 +142,12 @@ public class NameNodeDir implements RemoteDir {
 	}
 	
 	@Override
-	public void delete(boolean recursively) throws RemoteException, RemoteDirNotEmptyException {
+	public void move(String pathTo) throws RemoteDirNotFoundException {
+		getDir(pathTo).addSubDir(this);
+	}
+	
+	@Override
+	public void delete(boolean recursively) throws RemoteDirNotEmptyException {
 		if (parent != null) { //this isn't the root dir
 			if (recursively || (subDirs.size() == 0 && files.size() == 0))
 				parent.subDirs.remove(this);
@@ -159,12 +157,7 @@ public class NameNodeDir implements RemoteDir {
 	}
 	
 	@Override
-	public void move(String pathTo) throws RemoteException, RemoteDirNotFoundException {
-		getDir(pathTo).addSubDir(this);
-	}
-	
-	@Override
-	public List<YAHASFile> getFiles() throws RemoteException {
+	public List<YAHASFile> getFiles() {
 		List<YAHASFile> files = new ArrayList<>();
 		for (NameNodeFile file : this.files.values())
 			files.add(file.getYAHASFile());
@@ -173,7 +166,7 @@ public class NameNodeDir implements RemoteDir {
 	}
 
 	@Override
-	public List<RemoteDir> getSubDirs() throws RemoteException {
+	public List<RemoteDir> getSubDirs() {
 		List<RemoteDir> subDirs = new ArrayList<>();
 		for (NameNodeDir childDir : this.subDirs.values())
 			subDirs.add(childDir.getStub());
@@ -184,9 +177,17 @@ public class NameNodeDir implements RemoteDir {
 	
 	
 	
-	
+	@Override
 	public String getName() {
 		return name;
+	}
+
+	@Override
+	public String getPath() {
+//		if (isRoot())
+//			return "/"
+//		
+		return null;
 	}
 
 	@Override
@@ -194,7 +195,7 @@ public class NameNodeDir implements RemoteDir {
 		return getName();
 	}
 	
-	public RemoteDir getStub() throws RemoteException {
+	public RemoteDir getStub() {
 		return stub;
 	}
 }

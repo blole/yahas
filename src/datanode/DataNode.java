@@ -126,7 +126,7 @@ public class DataNode implements RemoteDataNode {
 						1_000);
 
 		int id = getSavedID(baseDir);
-		if (id == 0) {
+		if (id == -1) {
 			id = registerForNewID(nameNode);
 			saveID(baseDir, id);
 		}
@@ -182,7 +182,7 @@ public class DataNode implements RemoteDataNode {
 				System.exit(1);
 			}
 		}
-		return 0;
+		return -1;
 	}
 
 	public static int registerForNewID(DataNodeNameNodeProtocol nameNode) {

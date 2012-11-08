@@ -15,6 +15,7 @@ public class YAHASFile implements Serializable {
 	private static final long serialVersionUID = -1422394544577820093L;
 	private RemoteFile remoteFile;
 	private String name;
+	private boolean iOpenedIt = false;
 	
 	public YAHASFile(NameNodeFile file) throws RemoteException {
 		this(file.getName(), file.getStub());
@@ -29,7 +30,10 @@ public class YAHASFile implements Serializable {
 	
 	
 	
-	public void write(String data) throws AllDataNodesAreDeadException {
+	public void write(String data) throws AllDataNodesAreDeadException, RemoteFileAlreadyOpenException {
+		if (!iOpenedIt)
+			throw new RemoteFileAlreadyOpenException();
+		
 		try {
 			while (data.length() > 0) {
 				LocatedBlock block = remoteFile.getWritingBlock();
@@ -47,24 +51,38 @@ public class YAHASFile implements Serializable {
 	
 	public void open() throws RemoteException, RemoteFileAlreadyOpenException {
 		remoteFile.open();
+		iOpenedIt = true;
 	}
 	
-	public void renewLease() throws RemoteException {
-		remoteFile.renewLease();
+	public void renewLease() throws RemoteException, RemoteFileAlreadyOpenException {
+		if (iOpenedIt)
+			remoteFile.renewLease();
+		else if (!remoteFile.isOpen())
+			open();
+		else
+			throw new RemoteFileAlreadyOpenException();
 	}
 	
-	public void close() throws RemoteException {
-		remoteFile.close();
+	public void close() throws RemoteException, RemoteFileAlreadyOpenException {
+		if (!iOpenedIt)
+			throw new RemoteFileAlreadyOpenException();
+		else {
+			iOpenedIt = false;
+			remoteFile.close();
+		}
 	}
 	
 	public void tryToClose() {
 		try {
 			close();
-		} catch (RemoteException e) {}
+		} catch (RemoteException | RemoteFileAlreadyOpenException e) {}
 	}
 	
-	public void delete() throws RemoteException {
-		remoteFile.delete();
+	public void delete() throws RemoteException, RemoteFileAlreadyOpenException {
+		if (iOpenedIt || !remoteFile.isOpen())
+			remoteFile.delete();
+		else
+			throw new RemoteFileAlreadyOpenException();
 	}
 	
 	public String getName() {

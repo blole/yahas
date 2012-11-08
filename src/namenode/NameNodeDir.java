@@ -184,10 +184,7 @@ public class NameNodeDir implements RemoteDir {
 
 	@Override
 	public String getPath() {
-//		if (isRoot())
-//			return "/"
-//		
-		return null;
+		return parent.getPath()+getName()+"/";
 	}
 
 	@Override

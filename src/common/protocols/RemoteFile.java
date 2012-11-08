@@ -78,4 +78,6 @@ public interface RemoteFile extends Remote {
 	 * @throws RemoteException
 	 */
 	List<LocatedBlock> getBlocks() throws RemoteException;
+	
+	boolean isOpen() throws RemoteException;
 }

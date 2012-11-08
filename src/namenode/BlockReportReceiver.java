@@ -33,11 +33,11 @@ public class BlockReportReceiver implements Runnable {
 		try {
 			BlockReport blockReport = dataNode.stub.getBlockReport();
 			nameNode.receiveBlockReport(dataNode, blockReport);
-			LOGGER.debug(String.format("Got BlockReport from %s with %d blocks",
+			LOGGER.debug(String.format("Retrieved BlockReport from %s with %d blocks",
 					dataNode, blockReport.blockIDs.size()));
 		}
 		catch (RemoteException e) {
-			LOGGER.error("Error while getting BlockReport from "+dataNode, e);
+			LOGGER.error("Error while retrieving BlockReport from "+dataNode, e);
 		}
 	}
 }

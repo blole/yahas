@@ -21,7 +21,7 @@ public class NameNodeFile implements RemoteFile {
 			NameNodeFile.class.getCanonicalName());
 	
 	private static final TimeoutHashSet<NameNodeFile> leasedFiles = 
-			new TimeoutHashSet<>(Constants.DEFAULT_FILE_LEASE_TIME, new Action<NameNodeFile>() {
+			new TimeoutHashSet<>(Constants.DEFAULT_FILE_LEASE_TIME_MS, new Action<NameNodeFile>() {
 				@Override
 				public void execute(NameNodeFile file) {
 					file.closeForReal(true);
@@ -62,6 +62,11 @@ public class NameNodeFile implements RemoteFile {
 	
 	
 	
+	
+	@Override
+	public boolean isOpen() {
+		return leasedFiles.contains(this);
+	}
 	
 	@Override
 	public void open() throws RemoteException, RemoteFileAlreadyOpenException {
@@ -145,11 +150,6 @@ public class NameNodeFile implements RemoteFile {
 	
 	
 	
-	
-
-	public boolean isOpen() {
-		return leasedFiles.contains(this);
-	}
 	
 	public YAHASFile getYAHASFile() {
 		return yahasFile;

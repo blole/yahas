@@ -44,7 +44,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 
 	public NameNode(int heartBeatPort) {
 		heartBeatReceiver = new HeartBeatReceiver(this, heartBeatPort);
-		blockReportReceiver = new BlockReportReceiver(this, Constants.DEFAULT_BLOCKREPORT_TIME);
+		blockReportReceiver = new BlockReportReceiver(this, Constants.DEFAULT_BLOCKREPORT_TIME_MS);
 		root = new NameNodeRootDir();
 		dataNodeIdCounter = 0;
 		blockIdCounter = 0;
@@ -120,6 +120,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	@Override
 	public int register() throws RemoteException {
+		LOGGER.debug("Issued new DataNodeID: "+dataNodeIdCounter);
 		return dataNodeIdCounter++;
 	}
 

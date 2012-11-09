@@ -20,7 +20,7 @@ public class NameNodeDir implements RemoteDir {
 			NameNodeDir.class.getCanonicalName());
 	
 	private String name;
-	private NameNodeDir parent;
+	protected NameNodeDir parent;
 	private final HashMap<String, NameNodeDir> subDirs = new HashMap<>();
 	private final HashMap<String, NameNodeFile> files = new HashMap<>();
 	private RemoteDir stub;

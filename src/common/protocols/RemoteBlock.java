@@ -65,4 +65,6 @@ public interface RemoteBlock extends Remote {
 	 * @throws RemoteException
 	 */
 	void delete() throws RemoteException;
+
+	byte[] read() throws RemoteException;
 }

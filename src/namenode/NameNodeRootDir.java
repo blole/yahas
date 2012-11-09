@@ -7,6 +7,7 @@ public class NameNodeRootDir extends NameNodeDir {
 
 	public NameNodeRootDir() {
 		super(null);
+		this.parent = this;
 	}
 	
 	@Override

@@ -20,6 +20,7 @@ public class Client {
 			
 			file.open();
 			file.write("file data");
+			System.out.printf("read: '%s'\n", new String(file.read()));
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (RemoteDirNotFoundException e) {

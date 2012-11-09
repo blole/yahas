@@ -125,7 +125,7 @@ public class NameNodeFile implements RemoteFile {
 
 	@Override
 	public List<LocatedBlock> getBlocks() {
-		return null;
+		return blocks;
 	}
 	
 	

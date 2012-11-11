@@ -20,6 +20,10 @@ public class NameNodeRootDir extends NameNodeDir {
 		throw new DirectoryNotEmptyException("/");
 	}
 	
+	
+	
+	
+	
 	@Override
 	protected boolean isRoot() {
 		return true;

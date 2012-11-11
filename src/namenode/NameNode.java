@@ -32,6 +32,9 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	private final HashMap<DataNodeImage, Set<Long>> dataNodeToBlockMap = new HashMap<>();
 	private final HashMap<Long, Set<DataNodeImage>> blockToDataNodeMap = new HashMap<>();
 
+	private final static Logger LOGGER = Logger.getLogger(NameNode.class
+			.getCanonicalName());
+
 
 
 
@@ -41,9 +44,6 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	private final NameNodeRootDir root;
 	private int dataNodeIdCounter;
 	private int blockIdCounter;
-
-	private final static Logger LOGGER = Logger.getLogger(NameNode.class
-			.getCanonicalName());
 
 	public NameNode(int heartBeatPort) {
 		heartBeatReceiver = new HeartBeatReceiver(this, heartBeatPort);
@@ -70,7 +70,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 
 	@Override
 	public YAHASFile createFile(String path, byte replicationFactor) throws FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName {
-		Pair<NameNodeDir, String> pair = FileOrDir.getLastDir(root, path);
+		Pair<NameNodeDir, String> pair = FileOrDir.getLastDir(root, path, false);
 		
 		if (pair.getValue0() == null)
 			throw new BadFileName();
@@ -79,7 +79,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 			String fileName = pair.getValue1();
 			NameNodeFile file = new NameNodeFile(this, fileName, replicationFactor);
 			dir.moveHere(file, fileName);
-			LOGGER.debug(String.format("Created file '%s'", path));
+			LOGGER.debug(file+" created");
 			return file.getYAHASFile();
 		}
 	}
@@ -87,14 +87,14 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	@Override
 	public RemoteDir createDir(String path, boolean createParentsAsNeeded) throws NotDirectoryException, FileAlreadyExistsException, NoSuchFileOrDirectoryException {
 		NameNodeDir dir = root.createDir(path, createParentsAsNeeded);
-		LOGGER.debug(String.format("Created dir '%s'", path));
+		LOGGER.debug(dir+" created");
 		return dir.getStub();
 	}
 
 	@Override
 	public RemoteDir getDir(String path) throws NotDirectoryException, NoSuchFileOrDirectoryException {
-		NameNodeDir dir = root.getDir(path);
-		LOGGER.debug(String.format("Served dir '%s'", path));
+		NameNodeDir dir = root.getDir(path, false);
+		LOGGER.debug(dir+" served");
 		return dir.getStub();
 	}
 	

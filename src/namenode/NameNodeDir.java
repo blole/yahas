@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.javatuples.Pair;
 
 import client.YAHASFile;
 
@@ -76,11 +77,7 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 		}
 		return dir;
 	}
-
-
-
-
-
+	
 	@Override
 	public NameNodeFile getFile(String fullPath) throws NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException {
 		FileOrDir file = get(fullPath, false);
@@ -103,6 +100,43 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	}
 	
 	/**
+	 * If {@code createParentsAsNeeded} is true, the function will try to create
+	 * try to create directories up to the next last level, but never for
+	 * the last level, since it doesn't know if you were looking for a
+	 * file or a directory.
+	 * 
+	 * @param startingDir
+	 * @param path
+	 * @param createParentsAsNeeded
+	 * @return
+	 * @throws NotDirectoryException
+	 * @throws NoSuchFileOrDirectoryException
+	 */
+	public Pair<NameNodeDir, String> getLastDir(String path, boolean createParentsAsNeeded)
+					throws NotDirectoryException, NoSuchFileOrDirectoryException {
+		path.replaceAll("/+$", ""); //remove trailing slashes
+		int lastSlashIndex = path.lastIndexOf('/');
+		
+		if (lastSlashIndex < 0)
+			lastSlashIndex = 0;
+		String basePath = path.substring(0, lastSlashIndex);
+		String existingDirNameOrName = path.substring(lastSlashIndex);
+		
+		NameNodeDir safeDir = getDir(basePath, createParentsAsNeeded);
+		try {
+			FileOrDir maybeDir = safeDir.get(existingDirNameOrName, false);
+			if (maybeDir.getType() == Type.Directory)
+				return new Pair<>((NameNodeDir)maybeDir, null);
+		} catch (NoSuchFileOrDirectoryException e) {}
+		
+		return new Pair<>((NameNodeDir)safeDir, existingDirNameOrName);
+	}
+	
+	
+	
+	
+	
+	/**
 	 * 
 	 * @param path
 	 * @param createParentsAsNeeded
@@ -115,30 +149,12 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	 */
 	public NameNodeDir createDir(String path, boolean createParentsAsNeeded)
 			throws NotDirectoryException, FileAlreadyExistsException, NoSuchFileOrDirectoryException {
-		String[] s = path.split("/+", 2);
+		Pair<NameNodeDir, String> pair = getLastDir(path, createParentsAsNeeded);
 		
-		if (s.length == 1)
-			return createDirHere(path);
-		else {
-			FileOrDir subDir;
-			if (s[0].length() == 0) {
-				s = s[1].split("/+", 2);//if the first iteration was called with a string starting with a slash
-				subDir = getRoot();
-			}
-			else
-				subDir = contents.get(s[0]);
-			
-			if (subDir != null) {
-				if (subDir.getType() != Type.Directory)
-					throw new NotDirectoryException(subDir.getName());
-				else
-					return ((NameNodeDir)subDir).createDir(s[1], createParentsAsNeeded);
-			}
-			else if (createParentsAsNeeded)
-				return createDirHere(s[0]).createDir(s[1], createParentsAsNeeded);
-			else
-				throw new NoSuchFileOrDirectoryException();
-		}
+		if (pair.getValue1() == null)
+			return pair.getValue0();
+		else
+			return pair.getValue0().createDirHere(pair.getValue1());
 	}
 	
 	private NameNodeDir createDirHere(String subDirName) throws FileAlreadyExistsException {

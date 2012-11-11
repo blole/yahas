@@ -70,7 +70,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 
 	@Override
 	public YAHASFile createFile(String path, byte replicationFactor) throws FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName {
-		Pair<NameNodeDir, String> pair = FileOrDir.getLastDir(root, path, false);
+		Pair<NameNodeDir, String> pair = root.getLastDir(path, false);
 		
 		if (pair.getValue0() == null)
 			throw new BadFileName();

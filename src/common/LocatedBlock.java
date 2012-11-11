@@ -16,7 +16,7 @@ public class LocatedBlock implements Serializable {
 		this.remoteDataNodes = dataNodes;
 	}
 	
-	public void write(String data) throws AllDataNodesAreDeadException {
+	public void write(byte[] data) throws AllDataNodesAreDeadException {
 		if (!ReplicationHelper.write(data, blockID, remoteDataNodes))
 			throw new AllDataNodesAreDeadException();
 	}

@@ -5,6 +5,8 @@ import java.nio.file.NotDirectoryException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+import org.apache.log4j.Logger;
+
 import common.RMIHelper;
 import common.exceptions.AllDataNodesAreDeadException;
 import common.exceptions.BadFileName;
@@ -13,24 +15,30 @@ import common.exceptions.NoSuchFileOrDirectoryException;
 import common.protocols.ClientNameNodeProtocol;
 import common.protocols.RemoteDir;
 
-
 public class Client {
-	public Client(ClientNameNodeProtocol nameNode) {
+
+	private static final Logger LOGGER = Logger.getLogger(Client.class
+			.getCanonicalName());
+	
+	ClientNameNodeProtocol nameNode = null;
+		
+
+	public void createFile(String fileName, int repFactor, String contents) {
+
 		YAHASFile file = null;
+
 		try {
-			nameNode.createDir("a", false);
-			file = nameNode.createFile("c", (byte)2);
+			file = nameNode.createFile(fileName, (byte) repFactor);
 			file.open();
-			file.write("file data");
-			file.move("h");
-			
+			file.write(contents);
+			LOGGER.debug("File " + fileName + " created Successfully");
+		} catch (RemoteException | RemoteDirNotFoundException e) {
 			debugPrintDir("", nameNode.getDir("/"));
 			
 			System.out.printf("\nread: '%s'\n", new String(file.read()));
-		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (AllDataNodesAreDeadException e) {
-			System.err.println("All DataNodes died.");
+			e.printStackTrace();
 		} catch (FileAlreadyExistsException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -46,31 +54,108 @@ public class Client {
 		} catch (FileAlreadyOpenException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} finally {
-			if (file != null)
-				file.tryToClose();
+		}
+
+	}
+	
+	public String readFile (String fileName) {
+		String contents=null ;	
+		try {
+				YAHASFile file = nameNode.getFile(fileName);
+				contents= new String(file.read());
+
+			} catch (RemoteException | RemoteFileNotFoundException
+					| RemoteFileAlreadyOpenException e) {
+				e.printStackTrace();
+			}
+			return contents;
+	}
+	
+	
+	public void createDir(String pathName){
+		
+		try {
+			nameNode.createDirs(pathName);
+		} catch (RemoteException e) {
+			e.printStackTrace();
 		}
 	}
 	
-	public void debugPrintDir(String prefix, RemoteDir dir) throws RemoteException {
-		System.out.println(prefix + dir.getPath());
-		for (YAHASFile file : dir.getFiles())
-			System.out.println(prefix+" -"+file.getName());
-		for (RemoteDir subDir : dir.getSubDirs())
-			debugPrintDir(prefix+"    ", subDir);
+	public void printDirContent(String dirName){
+		try {
+			RemoteDir dir = nameNode.getDir(dirName);
+			for (RemoteDir subDir : dir.getSubDirs()){
+				LOGGER.debug("*" + subDir.getPath());
+			}
+			for(YAHASFile file : dir.getFiles()){
+				LOGGER.debug("-" + file.getName());
+			}
+		} catch (RemoteException | RemoteDirNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	
 	
-	
-	
+
+	public Client(ClientNameNodeProtocol nameNode) {
+
+		this.nameNode = nameNode;
+		
+
+		// try {
+		// file = nameNode.createFile("world", (byte)2);
+		// debugPrintDir("", nameNode.getDir(""));
+		// file.open();
+		// file.write("file data");
+		// System.out.printf("read: '%s'\n", new String(file.read()));
+		// } catch (RemoteException e) {
+		// e.printStackTrace();
+		// } catch (RemoteDirNotFoundException e) {
+		// e.printStackTrace();
+		// } catch (RemoteFileAlreadyOpenException e) {
+		// System.err.println("File already open.");
+		// } catch (AllDataNodesAreDeadException e) {
+		// System.err.println("All DataNodes died.");
+		// } finally {
+		// if (file != null)
+		// file.tryToClose();
+		// }
+	}
+
+	public void debugPrintNamespace(String prefix, RemoteDir dir)
+			throws RemoteException {
+		System.out.println(prefix + dir.getPath());
+		for (RemoteDir subDir : dir.getSubDirs())
+			debugPrintNamespace(prefix + "  ", subDir);
+		for (YAHASFile file : dir.getFiles())
+			System.out.println(prefix + "-" + file.getName());
+	}
+
 	public static void main(String args[]) {
 		String host = "localhost";
-		String nameNodeAddress = "//"+host+"/NameNode";
-		
+		String nameNodeAddress = "//" + host + "/NameNode";
 		RMIHelper.maybeStartSecurityManager();
-		Remote nameNode = RMIHelper.lookup(nameNodeAddress);
-		if (nameNode != null)
-			new Client((ClientNameNodeProtocol) nameNode);
+		Remote rNameNode = RMIHelper.lookup(nameNodeAddress);
+		Client client =new Client((ClientNameNodeProtocol) rNameNode);
+		client.createFile("world", 2, "file data");
+		RemoteDir rootDir;
+		try {
+			rootDir = client.nameNode.getDir("");
+
+			client.createDir("/dir1/");
+			client.createDir("/dir2/");
+			client.createDir("/dir3/");
+//			client.printDirContent("dir1");
+			client.debugPrintNamespace("", rootDir);
+		} catch (RemoteException | RemoteDirNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
 	}
 }

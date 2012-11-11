@@ -182,6 +182,15 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 		node.parent = this;
 		node.name = newName;
 		contents.put(newName, node);
+			while (!dir.isRoot())
+	protected boolean isRoot() {
+		return false;
+	}
+
+
+
+
+
 	}
 	
 	
@@ -192,9 +201,10 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 		if (parent != null) {
 			if (force || contents.size() == 0)
 				super.delete();
-			else
-				throw new DirectoryNotEmptyException(getPath());
-		}
+		if (recursively || (subDirs.size() == 0 && files.size() == 0))
+			parent.subDirs.remove(this);
+		else
+			throw new DirectoryNotEmptyException(getPath());
 	}
 	
 	@Override

@@ -1,8 +1,12 @@
 package datanode;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.rmi.RemoteException;
 import java.util.List;
 
@@ -71,6 +75,39 @@ public class Block implements RemoteBlock {
 	
 	
 	
+
+	@Override
+	public byte[] read() throws RemoteException {
+		byte[] byteArray = new byte[(int)file.length()];
+		
+		try {
+			InputStream input = null;
+			try {
+				int totalBytesRead = 0;
+				input = new BufferedInputStream(new FileInputStream(file));
+				while (totalBytesRead < byteArray.length) {
+					int bytesRemaining = byteArray.length - totalBytesRead;
+					//input.read() returns -1, 0, or more :
+					int bytesRead;
+						bytesRead = input.read(byteArray, totalBytesRead, bytesRemaining);
+					if (bytesRead > 0)
+						totalBytesRead = totalBytesRead + bytesRead;
+				}
+			} finally {
+				if (input != null)
+					input.close();
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		catch (IOException e) {
+			LOGGER.error("Error reading file "+file.getAbsolutePath(), e);
+		}
+		LOGGER.debug(toString()+" read");
+		return byteArray;
+		//TODO: maybe calculate hash while reading
+	}
 	
 	@Override
 	public void write(String data) throws RemoteException {
@@ -81,6 +118,7 @@ public class Block implements RemoteBlock {
 	public void writePipeline(String data,
 			List<DataNodeDataNodeProtocol> dataNodes) throws RemoteException {
 		tryToWriteToFile(data);
+		LOGGER.debug(String.format("%s replicating to %d DataNodes", toString(), dataNodes.size()));
 		ReplicationHelper.write(data, blockID, dataNodes);
 	}
 
@@ -89,14 +127,15 @@ public class Block implements RemoteBlock {
 			FileWriter writer = new FileWriter(file);
 			writer.append(data);
 			writer.close();
+			LOGGER.debug(toString()+" appended");
 
 			String hashVal = DigestUtils.md5Hex(data);
 			FileWriter hashWriter = new FileWriter(hashFile);
 			hashWriter.write(""+hashVal);
 			hashWriter.close();
-			LOGGER.debug("Calculated MD5 Hash of " + data + " as " + hashVal);
+			LOGGER.debug(toString()+" new MD5 hash: "+ hashVal);
 		} catch (IOException e) {
-			String errormessage = "Error while appending to block "+blockID;
+			String errormessage = toString()+" error while appending";
 			LOGGER.error(errormessage, e);
 			throw new RemoteException(errormessage, e);
 		}

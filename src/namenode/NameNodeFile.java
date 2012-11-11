@@ -21,7 +21,7 @@ public class NameNodeFile implements RemoteFile {
 			NameNodeFile.class.getCanonicalName());
 	
 	private static final TimeoutHashSet<NameNodeFile> leasedFiles = 
-			new TimeoutHashSet<>(Constants.DEFAULT_FILE_LEASE_TIME, new Action<NameNodeFile>() {
+			new TimeoutHashSet<>(Constants.DEFAULT_FILE_LEASE_TIME_MS, new Action<NameNodeFile>() {
 				@Override
 				public void execute(NameNodeFile file) {
 					file.closeForReal(true);
@@ -64,25 +64,27 @@ public class NameNodeFile implements RemoteFile {
 	
 	
 	@Override
-	public void open() throws RemoteException, RemoteFileAlreadyOpenException {
+	public boolean isOpen() {
+		return leasedFiles.contains(this);
+	}
+	
+	@Override
+	public void open() throws RemoteFileAlreadyOpenException {
 		if (isOpen())
 			throw new RemoteFileAlreadyOpenException();
 		else {
 			LOGGER.debug(String.format("File '%s' opened.", name));
-			renewLeaseForReal();
+			renewLease();
 		}
 	}
 
 	@Override
-	public void renewLease() throws RemoteException {
-		renewLeaseForReal();
-	}
-	private void renewLeaseForReal() {
+	public void renewLease() {
 		leasedFiles.addOrRefresh(this);
 	}
 
 	@Override
-	public void close() throws RemoteException {
+	public void close() {
 		if (leasedFiles.remove(this)) {
 			closeForReal(false);
 		}
@@ -97,7 +99,7 @@ public class NameNodeFile implements RemoteFile {
 	
 	
 	@Override
-	public LocatedBlock addBlock() throws RemoteException {
+	public LocatedBlock addBlock() {
 		LocatedBlock block = new LocatedBlock(nameNode.getNewBlockID(),
 				nameNode.getAppropriateDataNodes(replicationFactor));
 		blocks.add(block);
@@ -105,7 +107,7 @@ public class NameNodeFile implements RemoteFile {
 	}
 	
 	@Override
-	public LocatedBlock getLastBlock() throws RemoteException {
+	public LocatedBlock getLastBlock() {
 		return blocks.get(blocks.size()-1);
 	}
 	
@@ -114,7 +116,7 @@ public class NameNodeFile implements RemoteFile {
 	 * if the file doesn't have any blocks yet, it adds a new one first.
 	 */
 	@Override
-	public LocatedBlock getWritingBlock() throws RemoteException {
+	public LocatedBlock getWritingBlock() {
 		if (blocks.size() != 0 && getLastBlock().getBytesLeft() != 0)
 			return getLastBlock();
 		else
@@ -122,8 +124,8 @@ public class NameNodeFile implements RemoteFile {
 	}
 
 	@Override
-	public List<LocatedBlock> getBlocks() throws RemoteException {
-		return null;
+	public List<LocatedBlock> getBlocks() {
+		return blocks;
 	}
 	
 	
@@ -145,11 +147,6 @@ public class NameNodeFile implements RemoteFile {
 	
 	
 	
-	
-
-	public boolean isOpen() {
-		return leasedFiles.contains(this);
-	}
 	
 	public YAHASFile getYAHASFile() {
 		return yahasFile;

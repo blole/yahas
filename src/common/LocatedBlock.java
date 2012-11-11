@@ -21,6 +21,16 @@ public class LocatedBlock implements Serializable {
 			throw new AllDataNodesAreDeadException();
 	}
 	
+	
+	
+	public long getID() {
+		return blockID;
+	}
+	
+	public List<RemoteDataNode> getRemoteDataNodes() {
+		return remoteDataNodes;
+	}
+
 	public int getBytesLeft() {
 		return 65536;
 	}

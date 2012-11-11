@@ -23,8 +23,8 @@ public class ReplicationHelper {
 		while (nextBlock != null) {
 			try {
 				if (remoteDataNodes.size() > 1)
-					nextBlock.writePipeline(data,
-							remoteDataNodes.subList(1, remoteDataNodes.size()));
+					nextBlock.writePipeline(data, new LinkedList<DataNodeDataNodeProtocol>(
+							remoteDataNodes.subList(1, remoteDataNodes.size())));
 				else
 					nextBlock.write(data);
 				return true;

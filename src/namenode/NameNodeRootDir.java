@@ -32,6 +32,6 @@ public class NameNodeRootDir extends NameNodeDir {
 	
 	@Override
 	public String getPath() {
-		return getName();
+		return "/";
 	}
 }

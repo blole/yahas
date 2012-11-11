@@ -7,6 +7,7 @@ public class NameNodeRootDir extends NameNodeDir {
 
 	public NameNodeRootDir() {
 		super(null);
+		this.parent = this;
 	}
 	
 	@Override
@@ -17,6 +18,11 @@ public class NameNodeRootDir extends NameNodeDir {
 	@Override
 	public void delete(boolean recursively) throws RemoteDirNotEmptyException {
 		throw new RemoteDirNotEmptyException();
+	}
+	
+	@Override
+	protected boolean isRoot() {
+		return true;
 	}
 	
 	@Override

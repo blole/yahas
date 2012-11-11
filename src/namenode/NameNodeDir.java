@@ -20,7 +20,7 @@ public class NameNodeDir implements RemoteDir {
 			NameNodeDir.class.getCanonicalName());
 	
 	private String name;
-	private NameNodeDir parent;
+	protected NameNodeDir parent;
 	private final HashMap<String, NameNodeDir> subDirs = new HashMap<>();
 	private final HashMap<String, NameNodeFile> files = new HashMap<>();
 	private RemoteDir stub;
@@ -105,7 +105,7 @@ public class NameNodeDir implements RemoteDir {
 	public NameNodeDir getDir(String path) throws RemoteDirNotFoundException {
 		NameNodeDir dir = this;
 		if (path.startsWith("/")) { //get root
-			while (dir != dir.parent)
+			while (!dir.isRoot())
 				dir = dir.parent;
 		}
 		
@@ -126,6 +126,14 @@ public class NameNodeDir implements RemoteDir {
 		return dir;
 	}
 	
+	protected boolean isRoot() {
+		return false;
+	}
+
+
+
+
+
 	public NameNodeDir getSubDir(String subDirName) throws RemoteDirNotFoundException {
 		NameNodeDir subDir = subDirs.get(subDirName);
 		if (subDir == null)
@@ -148,12 +156,10 @@ public class NameNodeDir implements RemoteDir {
 	
 	@Override
 	public void delete(boolean recursively) throws RemoteDirNotEmptyException {
-		if (parent != null) { //this isn't the root dir
-			if (recursively || (subDirs.size() == 0 && files.size() == 0))
-				parent.subDirs.remove(this);
-			else
-				throw new RemoteDirNotEmptyException();
-		}
+		if (recursively || (subDirs.size() == 0 && files.size() == 0))
+			parent.subDirs.remove(this);
+		else
+			throw new RemoteDirNotEmptyException();
 	}
 	
 	@Override

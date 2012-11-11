@@ -21,6 +21,11 @@ public class NameNodeRootDir extends NameNodeDir {
 	}
 	
 	@Override
+	protected boolean isRoot() {
+		return true;
+	}
+	
+	@Override
 	public String getName() {
 		return "/";
 	}

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd" >
+<log4j:configuration>
+
+	<appender name="CA" class="org.apache.log4j.ConsoleAppender">
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%c{1}:%-4L %m%n" />
+		</layout>
+	</appender>
+
+	<!-- Appender for File -->
+	<appender name="file" class="org.apache.log4j.RollingFileAppender">
+		<param name="File" value="Logging.log" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{ABSOLUTE} 
+      %5p %c{1}:%L - %m%n" />
+
+		</layout>
+
+	</appender>
+
+
+
+	<root>
+		<priority value="debug"></priority>
+		<appender-ref ref="CA" />
+		<appender-ref ref="file" />
+	</root>
+</log4j:configuration>

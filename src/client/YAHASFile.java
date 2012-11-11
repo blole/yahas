@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NotDirectoryException;
 import java.rmi.RemoteException;
+import java.util.Arrays;
 import java.util.List;
 
 import namenode.NameNodeFile;
@@ -62,18 +63,18 @@ public class YAHASFile implements Serializable {
 		return bytes.toByteArray();
 	}
 	
-	public void write(String data) throws RemoteException,
+	public void write(byte[] data) throws RemoteException,
 					AllDataNodesAreDeadException, FileAlreadyOpenException {
 		if (!iOpenedIt)
 			throw new FileAlreadyOpenException();
 		
-		while (data.length() > 0) {
+		for (int i=0; i<data.length; ) {
 			LocatedBlock block = remoteFile.getWritingBlock();
 			int bytesLeft = block.getBytesLeft();
 			
-			int split = Math.min(bytesLeft, data.length());
-			block.write(data.substring(0, split));
-			data = data.substring(split);
+			int split = Math.min(bytesLeft, data.length);
+			block.write(Arrays.copyOfRange(data, i, split));
+			i+= split;
 		}
 	}
 	

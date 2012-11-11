@@ -24,7 +24,7 @@ public class Client {
 	ClientNameNodeProtocol nameNode = null;
 		
 
-	public void createFile(String fileName, int repFactor, String contents) {
+	public void createFile(String fileName, int repFactor, byte[] contents) {
 
 		YAHASFile file = null;
 
@@ -144,15 +144,14 @@ public class Client {
 		String host = "localhost";
 		String nameNodeAddress = "//" + host + "/NameNode";
 		RMIHelper.maybeStartSecurityManager();
-		Remote rNameNode = RMIHelper.lookup(nameNodeAddress);
-		Client client =new Client((ClientNameNodeProtocol) rNameNode);
-		client.createFile("world", 2, "file data");
+		Remote nameNode = RMIHelper.lookup(nameNodeAddress);
+		Client client = new Client((ClientNameNodeProtocol) nameNode);
+		client.createFile("world", 2, "file data".getBytes());
 		RemoteDir rootDir;
 		try {
 			rootDir = client.nameNode.getDir("");
 			
 			client.createDir("/dir1/");
-			System.err.println("asd");
 			client.createDir("/dir2/");
 			client.createDir("/dir3/");
 //			client.printDirContent("dir1");

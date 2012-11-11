@@ -4,9 +4,11 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.rmi.RemoteException;
 import java.util.List;
 
@@ -110,22 +112,22 @@ public class Block implements RemoteBlock {
 	}
 	
 	@Override
-	public void write(String data) throws RemoteException {
+	public void write(byte[] data) throws RemoteException {
 		tryToWriteToFile(data);
 	}
 	
 	@Override
-	public void writePipeline(String data,
+	public void writePipeline(byte[] data,
 			List<DataNodeDataNodeProtocol> dataNodes) throws RemoteException {
 		tryToWriteToFile(data);
 		LOGGER.debug(String.format("%s replicating to %d DataNodes", toString(), dataNodes.size()));
 		ReplicationHelper.write(data, blockID, dataNodes);
 	}
 
-	private void tryToWriteToFile(String data) throws RemoteException {
+	private void tryToWriteToFile(byte[] data) throws RemoteException {
 		try {
-			FileWriter writer = new FileWriter(file);
-			writer.append(data);
+			OutputStream writer = new FileOutputStream(file);
+			writer.write(data);
 			writer.close();
 			LOGGER.debug(toString()+" appended");
 

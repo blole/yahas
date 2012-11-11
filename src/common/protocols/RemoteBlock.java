@@ -47,7 +47,7 @@ public interface RemoteBlock extends Remote {
 	 * @throws RemoteException
 	 * @throws IOException
 	 */
-	void write(String data) throws RemoteException, IOException;
+	void write(byte[] data) throws RemoteException, IOException;
 
 	/**
 	 * Set this Block to replicate every write to it the specified DataNodes
@@ -56,7 +56,7 @@ public interface RemoteBlock extends Remote {
 	 * @param dataNodes A List of Data Nodes to which the blocks needs to be replicated.
 	 * @throws RemoteException
 	 */
-	void writePipeline(String data, List<DataNodeDataNodeProtocol> dataNodes)
+	void writePipeline(byte[] data, List<DataNodeDataNodeProtocol> dataNodes)
 			throws RemoteException;
 
 	/**

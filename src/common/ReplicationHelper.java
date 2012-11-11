@@ -15,7 +15,7 @@ public class ReplicationHelper {
 	 * @param dataNodes
 	 * @return false if the pipeline is empty (which could be because no one responded)
 	 */
-	public static boolean write(final String data,
+	public static boolean write(final byte[] data,
 			long blockID, List<? extends DataNodeDataNodeProtocol> dataNodes) {
 		List<DataNodeDataNodeProtocol> remoteDataNodes = new LinkedList<>(dataNodes);
 		RemoteBlock nextBlock = moveToNextBlock(remoteDataNodes, blockID);

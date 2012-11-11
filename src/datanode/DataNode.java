@@ -15,8 +15,8 @@ import org.apache.log4j.Logger;
 import common.BlockReport;
 import common.Constants;
 import common.RMIHelper;
-import common.exceptions.RemoteBlockAlreadyExistsException;
-import common.exceptions.RemoteBlockNotFoundException;
+import common.exceptions.BlockAlreadyExistsException;
+import common.exceptions.BlockNotFoundException;
 import common.protocols.DataNodeNameNodeProtocol;
 import common.protocols.RemoteBlock;
 import common.protocols.RemoteDataNode;
@@ -66,21 +66,25 @@ public class DataNode implements RemoteDataNode {
 	
 	@Override
 	public RemoteBlock createBlock(long blockID) throws RemoteException,
-			RemoteBlockAlreadyExistsException {
+			BlockAlreadyExistsException {
 		Block block = blocks.get(blockID);
-		if (block != null)
-			throw new RemoteBlockAlreadyExistsException();
-		
-		return blocks.newBlock(blockID).getStub();
+		if (block != null) {
+			LOGGER.warn(block+" already exists");
+			throw new BlockAlreadyExistsException();
+		}
+		block = blocks.newBlock(blockID);
+		LOGGER.debug(block+" created");
+		return block.getStub();
 	}
 
 	@Override
 	public RemoteBlock getBlock(long blockID) throws RemoteException,
-			RemoteBlockNotFoundException {
+			BlockNotFoundException {
 		Block block = blocks.get(blockID);
 		if (block == null)
-			throw new RemoteBlockNotFoundException();
+			throw new BlockNotFoundException();
 		
+		LOGGER.debug(block+" served");
 		return block.getStub();
 	}
 
@@ -90,6 +94,7 @@ public class DataNode implements RemoteDataNode {
 		if (block == null)
 			block = blocks.newBlock(blockID);
 		
+		LOGGER.debug(block+" created");
 		return block.getStub();
 	}
 	

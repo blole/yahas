@@ -1,6 +1,6 @@
 package common.exceptions;
 
-public class RemoteFileAlreadyOpenException extends Exception {
+public class FileAlreadyOpenException extends Exception {
 	private static final long serialVersionUID = -235342703014096372L;
 
 }

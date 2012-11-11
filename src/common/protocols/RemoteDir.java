@@ -1,40 +1,30 @@
 package common.protocols;
 
-import java.rmi.Remote;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.NotDirectoryException;
 import java.rmi.RemoteException;
 import java.util.List;
 
 import namenode.NameNodeFile;
 import client.YAHASFile;
 
-import common.exceptions.RemoteDirNotEmptyException;
-import common.exceptions.RemoteDirNotFoundException;
-import common.exceptions.RemoteFileNotFoundException;
+import common.exceptions.NoSuchFileOrDirectoryException;
+import common.exceptions.NotFileException;
 
-public interface RemoteDir extends Remote {
-
+public interface RemoteDir extends RemoteFileOrDir {
+	
 	/**
 	 * Deletes the Directory
 	 * 
-	 * @param recursively
+	 * @param force
 	 *            : Set to true to delete child directories
 	 * @throws RemoteException
 	 * @throws RemoteDirNotEmptyException 
+	 * @throws DirectoryNotEmptyException 
 	 */
-	void delete(boolean recursively) throws RemoteException, RemoteDirNotEmptyException;
-
-	/**
-	 * Moves a directory to the specified location
-	 * 
-	 * @param to
-	 * @throws RemoteException
-	 * @throws RemoteDirNotFoundException 
-	 */
-	void move(String to) throws RemoteException, RemoteDirNotFoundException;
-
-		
-
-	NameNodeFile getFile(String path) throws RemoteException, RemoteFileNotFoundException;
+	void delete(boolean force) throws RemoteException, DirectoryNotEmptyException;
+	
+	NameNodeFile getFile(String path) throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException;
 
 	/**
 	 * To return the files under a particular directory
@@ -51,8 +41,4 @@ public interface RemoteDir extends Remote {
 	 * @throws RemoteException
 	 */
 	List<RemoteDir> getSubDirs() throws RemoteException;
-
-	String getName() throws RemoteException;
-
-	String getPath() throws RemoteException;
 }

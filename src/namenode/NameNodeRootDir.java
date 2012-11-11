@@ -1,7 +1,7 @@
 package namenode;
 
-import common.exceptions.RemoteDirNotEmptyException;
-import common.exceptions.RemoteDirNotFoundException;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.NotDirectoryException;
 
 public class NameNodeRootDir extends NameNodeDir {
 
@@ -11,13 +11,13 @@ public class NameNodeRootDir extends NameNodeDir {
 	}
 	
 	@Override
-	public void move(String pathTo) throws RemoteDirNotFoundException {
-		throw new RemoteDirNotFoundException();
+	public void move(String pathTo) throws NotDirectoryException {
+		throw new NotDirectoryException("/");
 	}
 	
 	@Override
-	public void delete(boolean recursively) throws RemoteDirNotEmptyException {
-		throw new RemoteDirNotEmptyException();
+	public void delete(boolean force) throws DirectoryNotEmptyException {
+		throw new DirectoryNotEmptyException("/");
 	}
 	
 	@Override

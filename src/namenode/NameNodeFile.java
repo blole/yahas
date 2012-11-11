@@ -13,10 +13,10 @@ import common.Constants;
 import common.LocatedBlock;
 import common.RMIHelper;
 import common.TimeoutHashSet;
-import common.exceptions.RemoteFileAlreadyOpenException;
+import common.exceptions.FileAlreadyOpenException;
 import common.protocols.RemoteFile;
 
-public class NameNodeFile implements RemoteFile {
+public class NameNodeFile extends FileOrDir implements RemoteFile {
 	private static final Logger LOGGER = Logger.getLogger(
 			NameNodeFile.class.getCanonicalName());
 	
@@ -33,30 +33,26 @@ public class NameNodeFile implements RemoteFile {
 	
 
 	private NameNode nameNode;
-	private String name;
 	private final ArrayList<LocatedBlock> blocks = new ArrayList<>();
 	private byte replicationFactor;
-	private NameNodeDir parentDir = null;
 	private YAHASFile yahasFile;
+	private boolean isOpen;
 
 
 
 
 	
 	public NameNodeFile(NameNode nameNode, String name, byte replicationFactor) {
+		super(name);
 		this.nameNode = nameNode;
-		this.name = name;
 		this.replicationFactor = replicationFactor;
-		
+		this.isOpen = false;
+				
 		try {
 			this.yahasFile = new YAHASFile(this);
 		} catch (RemoteException e) {
 			LOGGER.error("Error creating file "+name, e);
 		}
-	}
-	
-	public void setParentDir(NameNodeDir parentDir) {
-		this.parentDir = parentDir;
 	}
 	
 	
@@ -65,33 +61,39 @@ public class NameNodeFile implements RemoteFile {
 	
 	@Override
 	public boolean isOpen() {
-		return leasedFiles.contains(this);
+		return isOpen;
 	}
 	
 	@Override
-	public void open() throws RemoteFileAlreadyOpenException {
+	public void open() throws FileAlreadyOpenException {
 		if (isOpen())
-			throw new RemoteFileAlreadyOpenException();
+			throw new FileAlreadyOpenException();
 		else {
-			LOGGER.debug(String.format("File '%s' opened.", name));
+			LOGGER.debug(toString()+" opened");
 			renewLease();
 		}
 	}
 
 	@Override
 	public void renewLease() {
+		isOpen = true;
 		leasedFiles.addOrRefresh(this);
 	}
 
 	@Override
 	public void close() {
-		if (leasedFiles.remove(this)) {
+		if (leasedFiles.remove(this))
 			closeForReal(false);
-		}
 	}
 	private void closeForReal(boolean timedOut) {
-		LOGGER.debug(String.format("File '%s' closed beacuse %s.",
-				name, timedOut?"lease expired":"of remote call"));
+		isOpen = false;
+		LOGGER.debug(toString()+" closed beacuse "+
+		(timedOut ? "lease expired" : "of remote call"));
+	}
+	
+	@Override
+	public void delete() {
+		super.delete();
 	}
 	
 	
@@ -122,31 +124,21 @@ public class NameNodeFile implements RemoteFile {
 		else
 			return addBlock();
 	}
-
+	
 	@Override
 	public List<LocatedBlock> getBlocks() {
 		return blocks;
 	}
 	
-	
-	
-	
-	
 	@Override
-	public void move(String filePathAndName) throws RemoteException {
-		//TODO
+	public Type getType() {
+		return Type.File;
 	}
 	
 	@Override
-	public void delete() throws RemoteException {
-		if (parentDir != null)
-			parentDir.removeFile(this);
-		
-		LOGGER.debug(String.format("File '%s' deleted.", name));
+	public String toString() {
+		return "[File "+getName()+"]";
 	}
-	
-	
-	
 	
 	public YAHASFile getYAHASFile() {
 		return yahasFile;
@@ -154,9 +146,5 @@ public class NameNodeFile implements RemoteFile {
 	
 	public RemoteFile getStub() throws RemoteException {
 		return (RemoteFile) RMIHelper.getStub(this);
-	}
-
-	public String getName() {
-		return name;
 	}
 }

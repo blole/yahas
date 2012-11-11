@@ -1,6 +1,8 @@
 package namenode;
 
 import java.net.MalformedURLException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.NotDirectoryException;
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteServer;
 import java.util.ArrayList;
@@ -10,15 +12,16 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.javatuples.Pair;
 
 import client.YAHASFile;
 
 import common.BlockReport;
 import common.Constants;
 import common.RMIHelper;
-import common.exceptions.RemoteDirNotFoundException;
-import common.exceptions.RemoteFileAlreadyOpenException;
-import common.exceptions.RemoteFileNotFoundException;
+import common.exceptions.BadFileName;
+import common.exceptions.NoSuchFileOrDirectoryException;
+import common.exceptions.NotFileException;
 import common.protocols.RemoteDataNode;
 import common.protocols.RemoteDir;
 import common.protocols.RemoteNameNode;
@@ -61,54 +64,35 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	}
 	
 	@Override
-	public YAHASFile getFile(String path) throws RemoteException,
-			RemoteFileNotFoundException, RemoteFileAlreadyOpenException {
-		YAHASFile file = root.getFile(path).getYAHASFile();
-		LOGGER.debug(String.format("Served file '%s'", path));
-		return file;
+	public YAHASFile getFile(String path) throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException {
+		return root.getFile(path).getYAHASFile();
 	}
 
 	@Override
-	public YAHASFile createFile(String path, byte replicationFactor)
-			throws RemoteException, RemoteDirNotFoundException {
+	public YAHASFile createFile(String path, byte replicationFactor) throws FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName {
+		Pair<NameNodeDir, String> pair = FileOrDir.getLastDir(root, path);
 		
-		int lastSlashIndex = path.lastIndexOf('/');
-		
-		if (lastSlashIndex < 0)
-			lastSlashIndex = 0;
-		
-		
-		String dirs = path.substring(0, lastSlashIndex);
-		String name = path.substring(lastSlashIndex);
-		NameNodeFile file = new NameNodeFile(this, name, replicationFactor);
-		
-		root.getDir(dirs).addFile(file);
-		
-		LOGGER.debug(String.format("Created file '%s'", path));
-		return file.getYAHASFile();
-	}
-
-	@Override
-	public RemoteDir createDir(String path) throws RemoteException, RemoteDirNotFoundException {
-		NameNodeDir dir = root.addDir(path, false);
-		if (dir == null)
-			throw new RemoteDirNotFoundException();
+		if (pair.getValue0() == null)
+			throw new BadFileName();
 		else {
-			LOGGER.debug(String.format("Created dir '%s'", path));
-			return dir.getStub();
+			NameNodeDir dir = pair.getValue0();
+			String fileName = pair.getValue1();
+			NameNodeFile file = new NameNodeFile(this, fileName, replicationFactor);
+			dir.moveHere(file, fileName);
+			LOGGER.debug(String.format("Created file '%s'", path));
+			return file.getYAHASFile();
 		}
 	}
 
 	@Override
-	public RemoteDir createDirs(String path) throws RemoteException {
-		NameNodeDir dir = root.addDir(path, true);
+	public RemoteDir createDir(String path, boolean createParentsAsNeeded) throws NotDirectoryException, FileAlreadyExistsException, NoSuchFileOrDirectoryException {
+		NameNodeDir dir = root.createDir(path, createParentsAsNeeded);
 		LOGGER.debug(String.format("Created dir '%s'", path));
 		return dir.getStub();
 	}
 
 	@Override
-	public RemoteDir getDir(String path) throws RemoteException,
-			RemoteDirNotFoundException {
+	public RemoteDir getDir(String path) throws NotDirectoryException, NoSuchFileOrDirectoryException {
 		NameNodeDir dir = root.getDir(path);
 		LOGGER.debug(String.format("Served dir '%s'", path));
 		return dir.getStub();

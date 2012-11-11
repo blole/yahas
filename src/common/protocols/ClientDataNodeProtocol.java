@@ -3,8 +3,8 @@ package common.protocols;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-import common.exceptions.RemoteBlockAlreadyExistsException;
-import common.exceptions.RemoteBlockNotFoundException;
+import common.exceptions.BlockAlreadyExistsException;
+import common.exceptions.BlockNotFoundException;
 
 /**
  * Interface for the ClientDataNodeProtcol representing the protocol used
@@ -22,10 +22,10 @@ public interface ClientDataNodeProtocol extends Remote {
 	 *            BlockId of the new Block
 	 * @return returns the newly created Block
 	 * @throws RemoteException
-	 * @throws RemoteBlockAlreadyExistsException
+	 * @throws BlockAlreadyExistsException
 	 */
 	RemoteBlock createBlock(long blockID) throws RemoteException,
-			RemoteBlockAlreadyExistsException;
+			BlockAlreadyExistsException;
 
 	/**
 	 * Opens an Existing Block and throws an exception if it does not find it
@@ -34,10 +34,10 @@ public interface ClientDataNodeProtocol extends Remote {
 	 * @return
 	 * @throws RemoteException
 	 * @throws RemoteBlockAlreadyOpenException
-	 * @throws RemoteBlockNotFoundException
+	 * @throws BlockNotFoundException
 	 */
 	RemoteBlock getBlock(long blockID) throws RemoteException,
-			RemoteBlockNotFoundException;
+			BlockNotFoundException;
 
 	/**
 	 * Opens or creates a Block

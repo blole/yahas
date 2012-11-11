@@ -1,14 +1,16 @@
 package common.protocols;
 
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.NotDirectoryException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
 
 import client.YAHASFile;
 
-import common.exceptions.RemoteDirNotFoundException;
-import common.exceptions.RemoteFileAlreadyOpenException;
-import common.exceptions.RemoteFileNotFoundException;
+import common.exceptions.BadFileName;
+import common.exceptions.NoSuchFileOrDirectoryException;
+import common.exceptions.NotFileException;
 
 /**
  * 
@@ -20,28 +22,34 @@ import common.exceptions.RemoteFileNotFoundException;
  */
 public interface ClientNameNodeProtocol extends Remote {
 
-/**
- * Creates a File
- * @param name
- * 	Name of the File
- * @param replicationFactor
- * 	Replication Factor for the file
- * @return
- * @throws RemoteException
- * @throws RemoteDirNotFoundException
- */
-	YAHASFile createFile(String name, byte replicationFactor)
-			throws RemoteException, RemoteDirNotFoundException;
+	/**
+	 * Creates a File
+	 * @param name
+	 * 	Name of the File
+	 * @param replicationFactor
+	 * 	Replication Factor for the file
+	 * @return
+	 * @throws RemoteException
+	 * @throws FileAlreadyExistsException 
+	 * @throws NoSuchFileOrDirectoryException 
+	 * @throws NotDirectoryException 
+	 * @throws BadFileName 
+	 * @throws RemoteDirNotFoundException
+	 */
+	YAHASFile createFile(String name, byte replicationFactor) throws RemoteException, FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName;
 
-/**
- * Get the FileHandle
- * @param name
- * @return
- * @throws RemoteException
- * @throws RemoteFileNotFoundException
- */
-	YAHASFile getFile(String name) throws RemoteException,
-			RemoteFileNotFoundException, RemoteFileAlreadyOpenException;
+	/**
+	 * Get the FileHandle
+	 * @param name
+	 * @return
+	 * @throws RemoteException
+	 * @throws NotFileException 
+	 * @throws NoSuchFileOrDirectoryException 
+	 * @throws NotDirectoryException 
+	 * @throws RemoteFileNotFoundException
+	 */
+	YAHASFile getFile(String name) throws RemoteException, NotDirectoryException,
+					NoSuchFileOrDirectoryException, NotFileException;
 
 
 	/**
@@ -54,12 +62,12 @@ public interface ClientNameNodeProtocol extends Remote {
 	 *  createParentsAsNeeded is set to true.
 	 * @throws RemoteException
 	 * @throws RemoteDirNotFoundException 
+	 * @throws FileAlreadyExistsException 
+	 * @throws NotDirectoryException 
+	 * @throws NoSuchFileOrDirectoryException 
 	 */
-	RemoteDir createDir(String path)
-			throws RemoteException, RemoteDirNotFoundException;
-	
-	RemoteDir createDirs(String path)
-			throws RemoteException;
+	RemoteDir createDir(String path, boolean createParentsAsNeeded)
+			throws RemoteException, NotDirectoryException, FileAlreadyExistsException, NoSuchFileOrDirectoryException;
 	
 	/**
 	 * Gets and Existing Dir.
@@ -67,15 +75,15 @@ public interface ClientNameNodeProtocol extends Remote {
 	 * @return
 	 * @throws RemoteException
 	 * @throws RemoteDirNotFoundException
+	 * @throws NoSuchFileOrDirectoryException 
+	 * @throws NotDirectoryException 
 	 */
-	RemoteDir getDir(String name) throws RemoteException,
-			RemoteDirNotFoundException;
+	RemoteDir getDir(String name) throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException;
 
 	/**
 	 * Gets DataNodes
 	 * @return
 	 * @throws RemoteException
 	 */
-	List<? extends ClientDataNodeProtocol> getDataNodes()
-			throws RemoteException;
+	List<? extends ClientDataNodeProtocol> getDataNodes() throws RemoteException;
 }

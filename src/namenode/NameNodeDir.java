@@ -1,5 +1,8 @@
 package namenode;
 
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.NotDirectoryException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,19 +13,15 @@ import org.apache.log4j.Logger;
 import client.YAHASFile;
 
 import common.RMIHelper;
-import common.exceptions.RemoteDirNotEmptyException;
-import common.exceptions.RemoteDirNotFoundException;
-import common.exceptions.RemoteFileNotFoundException;
+import common.exceptions.NoSuchFileOrDirectoryException;
+import common.exceptions.NotFileException;
 import common.protocols.RemoteDir;
 
-public class NameNodeDir implements RemoteDir {
+public class NameNodeDir extends FileOrDir implements RemoteDir {
 	private static final Logger LOGGER = Logger.getLogger(
 			NameNodeDir.class.getCanonicalName());
 	
-	private String name;
-	protected NameNodeDir parent;
-	private final HashMap<String, NameNodeDir> subDirs = new HashMap<>();
-	private final HashMap<String, NameNodeFile> files = new HashMap<>();
+	private final HashMap<String, FileOrDir> contents = new HashMap<>();
 	private RemoteDir stub;
 	
 	/**
@@ -30,7 +29,7 @@ public class NameNodeDir implements RemoteDir {
 	 * @param name
 	 */
 	public NameNodeDir(String name) {
-		this.name = name;
+		super(name);
 		try {
 			this.stub = (RemoteDir) RMIHelper.getStub(this);
 		} catch (RemoteException e) {
@@ -42,27 +41,97 @@ public class NameNodeDir implements RemoteDir {
 	
 	
 	
-	public void addFile(NameNodeFile file) {
-		files.put(file.getName(), file);
-		file.setParentDir(this);
+//	@Override
+//	public NameNodeFile getFile(String fullPath) {
+//		fullPath = fullPath.replaceAll("/+", "/");
+//		int lastSlash = fullPath.lastIndexOf('/');
+//		String path = fullPath.substring(0, lastSlash);
+//		String fileName = fullPath.substring(lastSlash);
+//		
+//		NameNodeDir dir = getDir(path);
+//		TreeMember file = getDir(path).contents.get(fileName);
+//		if (file == null) {
+//			if (dir.subDirs.get(fileName) != null)
+//				throw new No
+//		}
+//		if (fileName)
+//		
+//		if (file == null)
+//			throw new FileNotFoundException(fileName);
+//		
+//		return file;
+//		
+//		
+//		
+//		
+//		String[] s = path.split("/", 2);
+//		if (s.length == 1) {
+//			NameNodeFile file = contents.get(path);
+//			if (file == null)
+//				throw new RemoteFileNotFoundException();
+//			return file;
+//		}
+//		else {
+//			NameNodeDir subDir = subDirs.get(s[0]);
+//			if (subDir == null)
+//				throw new RemoteFileNotFoundException();
+//			else
+//				return subDir.getFile(s[1]);
+//		}
+//	}
+	
+	public FileOrDir get(String path) throws NoSuchFileOrDirectoryException, NotDirectoryException {
+		FileOrDir dir = this;
+//		int i=0;
+		//path = path.replaceAll("/+", "/");
+		if (path.startsWith("/")) { //get root
+			while (dir != dir.parent)
+				dir = dir.parent;
+//			i=1;
+		}
+		
+		for (String dirName : path.split("/")) {
+//		for (; i<s.length; i++) {
+//			String dirName = s[i];
+//			
+			switch (dirName) {
+			case "":
+			case ".":
+				break;
+			case "..":
+				dir = dir.parent;
+				break;
+			default:
+				if (dir.getType() != Type.Directory)
+					throw new NotDirectoryException(dirName);
+				dir = ((NameNodeDir)dir).contents.get(dirName);
+				if (dir == null)
+					throw new NoSuchFileOrDirectoryException();
+				break;
+			}
+		}
+		return dir;
 	}
 	
 	@Override
-	public NameNodeFile getFile(String path) throws RemoteFileNotFoundException {
-		String[] s = path.split("/", 2);
-		if (s.length == 1) {
-			NameNodeFile file = files.get(path);
-			if (file == null)
-				throw new RemoteFileNotFoundException();
-			return file;
+	public NameNodeFile getFile(String fullPath) throws NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException {
+		FileOrDir file = get(fullPath);
+		if (file.getType() != Type.File) {
+			LOGGER.warn("Tried to serve "+file+" as a file");
+			throw new NotFileException();
 		}
 		else {
-			NameNodeDir subDir = subDirs.get(s[0]);
-			if (subDir == null)
-				throw new RemoteFileNotFoundException();
-			else
-				return subDir.getFile(s[1]);
+			LOGGER.debug(file+ " serve");
+			return (NameNodeFile) file;
 		}
+	}
+	
+	public NameNodeDir getDir(String fullPath) throws NotDirectoryException, NoSuchFileOrDirectoryException {
+		FileOrDir dir = get(fullPath);
+		if (dir.getType() != Type.Directory)
+			throw new NotDirectoryException(dir.getName());
+		else
+			return (NameNodeDir) dir;
 	}
 	
 	/**
@@ -72,95 +141,69 @@ public class NameNodeDir implements RemoteDir {
 	 * @return the newly created dir, or null if no dir was created because
 	 * there were non-existing dirs in the path.
 	 * Never returns null if {@code createParentsAsNeeded} is set to true.  
+	 * @throws NotDirectoryException 
+	 * @throws FileAlreadyExistsException 
+	 * @throws NoSuchFileOrDirectoryException 
 	 */
-	public NameNodeDir addDir(String path, boolean createParentsAsNeeded) {
-		String[] s = path.split("/", 2);
-		if (s.length == 1)
-			return addSubDir(path);
-		else {
-			NameNodeDir subDir = subDirs.get(s[0]);
-			if (subDir != null)
-				return subDir.addDir(s[1], createParentsAsNeeded);
-			else if (createParentsAsNeeded) {
-				return addSubDir(s[0]).addDir(s[1], createParentsAsNeeded);
-			}
-			else
-				return null;
-		}
-	}
-	
-	public NameNodeDir addSubDir(String subDirName) {
-		NameNodeDir subDir = new NameNodeDir(subDirName);
-		addSubDir(subDir);
-		return subDir;
-	}
-	
-	public void addSubDir(NameNodeDir subDir) {
-		//if (subDirs.containsKey(subDir.getName()))
-		//	throw new RemoteDirAlreadyContains....();
-		subDirs.put(subDir.getName(), subDir);
-		subDir.parent = this;
-	}
-	
-	public NameNodeDir getDir(String path) throws RemoteDirNotFoundException {
-		NameNodeDir dir = this;
-		if (path.startsWith("/")) { //get root
-			while (dir != dir.parent)
-				dir = dir.parent;
-		}
+	public NameNodeDir createDir(String path, boolean createParentsAsNeeded)
+			throws NotDirectoryException, FileAlreadyExistsException, NoSuchFileOrDirectoryException {
+		String[] s = path.split("/+", 2);
+		if (s[0].length() == 0)
+			s = s[1].split("/+", 2);//if the first iteration was called with a string starting with a slash
 		
-		String[] s = path.split("/");
-		for (String movement : s) {
-			switch (movement) {
-			case "":
-			case ".":
-				break;
-			case "..":
-				dir = dir.parent;
-				break;
-			default:
-				dir = dir.getSubDir(movement);
-				break;
+		if (s.length == 1)
+			return createDirHere(path);
+		else {
+			FileOrDir subDir = contents.get(s[0]);
+			if (subDir != null) {
+				if (subDir.getType() != Type.Directory)
+					throw new NotDirectoryException(subDir.getName());
+				else
+					return ((NameNodeDir)subDir).createDir(s[1], createParentsAsNeeded);
 			}
+			else if (createParentsAsNeeded)
+				return createDirHere(s[0]).createDir(s[1], createParentsAsNeeded);
+			else
+				throw new NoSuchFileOrDirectoryException();
 		}
-		return dir;
 	}
 	
-	public NameNodeDir getSubDir(String subDirName) throws RemoteDirNotFoundException {
-		NameNodeDir subDir = subDirs.get(subDirName);
-		if (subDir == null)
-			throw new RemoteDirNotFoundException();
+	private NameNodeDir createDirHere(String subDirName) throws FileAlreadyExistsException {
+		NameNodeDir subDir = new NameNodeDir(subDirName);
+		moveHere(subDir, subDirName);
 		return subDir;
 	}
 	
-	
-	
-	
-
-	public void removeFile(NameNodeFile file) {
-		files.remove(file);
+	public void moveHere(FileOrDir node, String newName) throws FileAlreadyExistsException {
+		if (contents.containsKey(newName))
+			throw new FileAlreadyExistsException(newName);
+		if (node.parent != null)
+			node.parent.contents.remove(node.getName());
+		node.parent = this;
+		node.name = newName;
+		contents.put(newName, node);
 	}
 	
-	@Override
-	public void move(String pathTo) throws RemoteDirNotFoundException {
-		getDir(pathTo).addSubDir(this);
-	}
+	
+	
 	
 	@Override
-	public void delete(boolean recursively) throws RemoteDirNotEmptyException {
-		if (parent != null) { //this isn't the root dir
-			if (recursively || (subDirs.size() == 0 && files.size() == 0))
-				parent.subDirs.remove(this);
+	public void delete(boolean force) throws DirectoryNotEmptyException {
+		if (parent != null) {
+			if (force || contents.size() == 0)
+				super.delete();
 			else
-				throw new RemoteDirNotEmptyException();
+				throw new DirectoryNotEmptyException(getPath());
 		}
 	}
 	
 	@Override
 	public List<YAHASFile> getFiles() {
 		List<YAHASFile> files = new ArrayList<>();
-		for (NameNodeFile file : this.files.values())
-			files.add(file.getYAHASFile());
+		for (FileOrDir file : contents.values()) {
+			if (file.getType() == Type.File)
+				files.add(((NameNodeFile)file).getYAHASFile());
+		}
 		LOGGER.debug(String.format("Listed files in %s", this));
 		return files;
 	}
@@ -168,8 +211,10 @@ public class NameNodeDir implements RemoteDir {
 	@Override
 	public List<RemoteDir> getSubDirs() {
 		List<RemoteDir> subDirs = new ArrayList<>();
-		for (NameNodeDir childDir : this.subDirs.values())
-			subDirs.add(childDir.getStub());
+		for (FileOrDir dir : contents.values()) {
+			if (dir.getType() == Type.Directory)
+				subDirs.add(((NameNodeDir)dir).getStub());
+		}
 		LOGGER.debug(String.format("Listed sub-directories in %s", this));
 		return subDirs;
 	}
@@ -177,14 +222,19 @@ public class NameNodeDir implements RemoteDir {
 	
 	
 	
-	@Override
-	public String getName() {
-		return name;
+	
+	void remove(FileOrDir member) {
+		contents.remove(member.getName());
 	}
-
+	
+	@Override
+	public Type getType() {
+		return Type.Directory;
+	}
+	
 	@Override
 	public String getPath() {
-		return parent.getPath()+getName()+"/";
+		return super.getPath()+"/";
 	}
 
 	@Override

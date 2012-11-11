@@ -47,7 +47,7 @@ abstract class FileOrDir implements Remote  {
 	
 	public void move(String path) throws NotDirectoryException,
 					NoSuchFileOrDirectoryException, FileAlreadyExistsException {
-		Pair<NameNodeDir, String> pair = getLastDir(parent, path);
+		Pair<NameNodeDir, String> pair = getLastDir(parent, path, false);
 		
 		if (pair.getValue1() != null)
 			pair.getValue0().moveHere(this, pair.getValue1());
@@ -55,7 +55,8 @@ abstract class FileOrDir implements Remote  {
 			pair.getValue0().moveHere(this, name);
 	}
 	
-	public static Pair<NameNodeDir, String> getLastDir(NameNodeDir startingDir, String path) throws NotDirectoryException, NoSuchFileOrDirectoryException {
+	public static Pair<NameNodeDir, String> getLastDir(NameNodeDir startingDir, String path,
+			boolean createParentsAsNeeded) throws NotDirectoryException, NoSuchFileOrDirectoryException {
 		path.replaceAll("/+$", "");
 		int lastSlashIndex = path.lastIndexOf('/');
 		
@@ -64,9 +65,9 @@ abstract class FileOrDir implements Remote  {
 		String basePath = path.substring(0, lastSlashIndex);
 		String existingDirNameOrName = path.substring(lastSlashIndex);
 		
-		NameNodeDir safeDir = startingDir.getDir(basePath);
+		NameNodeDir safeDir = startingDir.getDir(basePath, createParentsAsNeeded);
 		try {
-			FileOrDir maybeDir = safeDir.get(existingDirNameOrName);
+			FileOrDir maybeDir = safeDir.get(existingDirNameOrName, createParentsAsNeeded);
 			if (maybeDir.getType() == Type.Directory)
 				return new Pair<>((NameNodeDir)maybeDir, null);
 		} catch (NoSuchFileOrDirectoryException e) {}

@@ -12,6 +12,7 @@ import common.exceptions.AllDataNodesAreDeadException;
 import common.exceptions.BadFileName;
 import common.exceptions.FileAlreadyOpenException;
 import common.exceptions.NoSuchFileOrDirectoryException;
+import common.exceptions.NotFileException;
 import common.protocols.ClientNameNodeProtocol;
 import common.protocols.RemoteDir;
 
@@ -32,10 +33,10 @@ public class Client {
 			file.open();
 			file.write(contents);
 			LOGGER.debug("File " + fileName + " created Successfully");
-		} catch (RemoteException | RemoteDirNotFoundException e) {
-			debugPrintDir("", nameNode.getDir("/"));
+			debugPrintNamespace("", nameNode.getDir("/"));
 			
 			System.out.printf("\nread: '%s'\n", new String(file.read()));
+		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (AllDataNodesAreDeadException e) {
 			e.printStackTrace();
@@ -54,6 +55,9 @@ public class Client {
 		} catch (FileAlreadyOpenException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if (file != null)
+				file.forceClose();
 		}
 
 	}
@@ -64,8 +68,9 @@ public class Client {
 				YAHASFile file = nameNode.getFile(fileName);
 				contents= new String(file.read());
 
-			} catch (RemoteException | RemoteFileNotFoundException
-					| RemoteFileAlreadyOpenException e) {
+			} catch (RemoteException | FileAlreadyOpenException |
+					NotDirectoryException | NoSuchFileOrDirectoryException |
+					NotFileException e) {
 				e.printStackTrace();
 			}
 			return contents;
@@ -75,8 +80,9 @@ public class Client {
 	public void createDir(String pathName){
 		
 		try {
-			nameNode.createDirs(pathName);
-		} catch (RemoteException e) {
+			nameNode.createDir(pathName, true);
+		} catch (RemoteException | NotDirectoryException |
+				FileAlreadyExistsException | NoSuchFileOrDirectoryException e) {
 			e.printStackTrace();
 		}
 	}
@@ -90,7 +96,7 @@ public class Client {
 			for(YAHASFile file : dir.getFiles()){
 				LOGGER.debug("-" + file.getName());
 			}
-		} catch (RemoteException | RemoteDirNotFoundException e) {
+		} catch (RemoteException | NotDirectoryException | NoSuchFileOrDirectoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -144,13 +150,14 @@ public class Client {
 		RemoteDir rootDir;
 		try {
 			rootDir = client.nameNode.getDir("");
-
+			
 			client.createDir("/dir1/");
+			System.err.println("asd");
 			client.createDir("/dir2/");
 			client.createDir("/dir3/");
 //			client.printDirContent("dir1");
 			client.debugPrintNamespace("", rootDir);
-		} catch (RemoteException | RemoteDirNotFoundException e) {
+		} catch (RemoteException | NotDirectoryException | NoSuchFileOrDirectoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

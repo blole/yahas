@@ -100,7 +100,7 @@ public class YAHASFile implements Serializable {
 		}
 	}
 	
-	public void tryToClose() {
+	public void forceClose() {
 		try {
 			close();
 		} catch (RemoteException | FileAlreadyOpenException e) {}

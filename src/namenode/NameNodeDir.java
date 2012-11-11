@@ -41,59 +41,14 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	
 	
 	
-//	@Override
-//	public NameNodeFile getFile(String fullPath) {
-//		fullPath = fullPath.replaceAll("/+", "/");
-//		int lastSlash = fullPath.lastIndexOf('/');
-//		String path = fullPath.substring(0, lastSlash);
-//		String fileName = fullPath.substring(lastSlash);
-//		
-//		NameNodeDir dir = getDir(path);
-//		TreeMember file = getDir(path).contents.get(fileName);
-//		if (file == null) {
-//			if (dir.subDirs.get(fileName) != null)
-//				throw new No
-//		}
-//		if (fileName)
-//		
-//		if (file == null)
-//			throw new FileNotFoundException(fileName);
-//		
-//		return file;
-//		
-//		
-//		
-//		
-//		String[] s = path.split("/", 2);
-//		if (s.length == 1) {
-//			NameNodeFile file = contents.get(path);
-//			if (file == null)
-//				throw new RemoteFileNotFoundException();
-//			return file;
-//		}
-//		else {
-//			NameNodeDir subDir = subDirs.get(s[0]);
-//			if (subDir == null)
-//				throw new RemoteFileNotFoundException();
-//			else
-//				return subDir.getFile(s[1]);
-//		}
-//	}
-	
-	public FileOrDir get(String path) throws NoSuchFileOrDirectoryException, NotDirectoryException {
-		FileOrDir dir = this;
-//		int i=0;
-		//path = path.replaceAll("/+", "/");
-		if (path.startsWith("/")) { //get root
-			while (dir != dir.parent)
-				dir = dir.parent;
-//			i=1;
-		}
+	public FileOrDir get(String path, boolean createParentsAsNeeded) throws NoSuchFileOrDirectoryException, NotDirectoryException {
+		FileOrDir dir;
+		if (path.startsWith("/"))
+			dir = getRoot();
+		else
+			dir = this;
 		
 		for (String dirName : path.split("/")) {
-//		for (; i<s.length; i++) {
-//			String dirName = s[i];
-//			
 			switch (dirName) {
 			case "":
 			case ".":
@@ -105,17 +60,30 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 				if (dir.getType() != Type.Directory)
 					throw new NotDirectoryException(dirName);
 				dir = ((NameNodeDir)dir).contents.get(dirName);
-				if (dir == null)
-					throw new NoSuchFileOrDirectoryException();
+				if (dir == null) {
+					if (createParentsAsNeeded) {
+						try {
+							dir = createDirHere(dirName);
+						} catch (FileAlreadyExistsException e) {
+							LOGGER.error("This should never happen. Concurrency issues?", e);
+						}
+					}
+					else
+						throw new NoSuchFileOrDirectoryException();
+				}
 				break;
 			}
 		}
 		return dir;
 	}
-	
+
+
+
+
+
 	@Override
 	public NameNodeFile getFile(String fullPath) throws NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException {
-		FileOrDir file = get(fullPath);
+		FileOrDir file = get(fullPath, false);
 		if (file.getType() != Type.File) {
 			LOGGER.warn("Tried to serve "+file+" as a file");
 			throw new NotFileException();
@@ -126,8 +94,8 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 		}
 	}
 	
-	public NameNodeDir getDir(String fullPath) throws NotDirectoryException, NoSuchFileOrDirectoryException {
-		FileOrDir dir = get(fullPath);
+	public NameNodeDir getDir(String fullPath, boolean createParentsAsNeeded) throws NotDirectoryException, NoSuchFileOrDirectoryException {
+		FileOrDir dir = get(fullPath, createParentsAsNeeded);
 		if (dir.getType() != Type.Directory)
 			throw new NotDirectoryException(dir.getName());
 		else
@@ -148,13 +116,18 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	public NameNodeDir createDir(String path, boolean createParentsAsNeeded)
 			throws NotDirectoryException, FileAlreadyExistsException, NoSuchFileOrDirectoryException {
 		String[] s = path.split("/+", 2);
-		if (s[0].length() == 0)
-			s = s[1].split("/+", 2);//if the first iteration was called with a string starting with a slash
 		
 		if (s.length == 1)
 			return createDirHere(path);
 		else {
-			FileOrDir subDir = contents.get(s[0]);
+			FileOrDir subDir;
+			if (s[0].length() == 0) {
+				s = s[1].split("/+", 2);//if the first iteration was called with a string starting with a slash
+				subDir = getRoot();
+			}
+			else
+				subDir = contents.get(s[0]);
+			
 			if (subDir != null) {
 				if (subDir.getType() != Type.Directory)
 					throw new NotDirectoryException(subDir.getName());
@@ -182,15 +155,6 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 		node.parent = this;
 		node.name = newName;
 		contents.put(newName, node);
-			while (!dir.isRoot())
-	protected boolean isRoot() {
-		return false;
-	}
-
-
-
-
-
 	}
 	
 	
@@ -201,8 +165,7 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 		if (parent != null) {
 			if (force || contents.size() == 0)
 				super.delete();
-		if (recursively || (subDirs.size() == 0 && files.size() == 0))
-			parent.subDirs.remove(this);
+		}
 		else
 			throw new DirectoryNotEmptyException(getPath());
 	}
@@ -237,6 +200,17 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 		contents.remove(member.getName());
 	}
 	
+	protected boolean isRoot() {
+		return false;
+	}
+	
+	private NameNodeDir getRoot() {
+		NameNodeDir dir = this;
+		while (!dir.isRoot())
+			dir = dir.parent;
+		return dir;
+	}
+	
 	@Override
 	public Type getType() {
 		return Type.Directory;
@@ -247,12 +221,12 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 		return super.getPath()+"/";
 	}
 
-	@Override
-	public String toString() {
-		return getName();
-	}
-	
 	public RemoteDir getStub() {
 		return stub;
+	}
+	
+	@Override
+	public String toString() {
+		return "[Dir "+getPath()+"]";
 	}
 }

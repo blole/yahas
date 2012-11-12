@@ -1,5 +1,6 @@
 package common.protocols;
 
+import java.io.Closeable;
 import java.rmi.RemoteException;
 import java.util.List;
 
@@ -12,7 +13,7 @@ import common.exceptions.FileAlreadyOpenException;
  * 
  * @author Bjorn, Govind, Jerry, Karan
  */
-public interface RemoteFile extends RemoteFileOrDir {
+public interface RemoteFile extends RemoteFileOrDir, Closeable {
 	
 	void open() throws RemoteException, FileAlreadyOpenException;
 	

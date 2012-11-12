@@ -17,19 +17,21 @@ import common.protocols.ClientNameNodeProtocol;
 import common.protocols.RemoteDir;
 
 public class Client {
-
 	private static final Logger LOGGER = Logger.getLogger(Client.class
 			.getCanonicalName());
 	
 	ClientNameNodeProtocol nameNode = null;
-		
-
+	
+	public Client(ClientNameNodeProtocol nameNode) {
+		this.nameNode = nameNode;
+	}
+	
+	
+	
+	
+	
 	public void createFile(String fileName, int repFactor, byte[] contents) {
-
-		YAHASFile file = null;
-
-		try {
-			file = nameNode.createFile(fileName, (byte) repFactor);
+		try (YAHASFile file = nameNode.createFile(fileName, (byte) repFactor)){
 			file.open();
 			file.write(contents);
 			LOGGER.debug("File " + fileName + " created Successfully");
@@ -55,29 +57,22 @@ public class Client {
 		} catch (FileAlreadyOpenException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} finally {
-			if (file != null)
-				file.forceClose();
 		}
 	}
 	
 	public String readFile (String fileName) {
-		String contents=null ;	
-		try {
-				YAHASFile file = nameNode.getFile(fileName);
-				contents= new String(file.read());
-
-			} catch (RemoteException | FileAlreadyOpenException |
-					NotDirectoryException | NoSuchFileOrDirectoryException |
-					NotFileException e) {
-				e.printStackTrace();
-			}
-			return contents;
+		try (YAHASFile file = nameNode.getFile(fileName)) {
+			file.open();
+			return new String(file.read());
+		} catch (RemoteException | FileAlreadyOpenException |
+				NotDirectoryException | NoSuchFileOrDirectoryException |
+				NotFileException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	
 	public void createDir(String pathName){
-		
 		try {
 			nameNode.createDir(pathName, true);
 		} catch (RemoteException | NotDirectoryException |
@@ -104,31 +99,7 @@ public class Client {
 	
 	
 	
-
-	public Client(ClientNameNodeProtocol nameNode) {
-
-		this.nameNode = nameNode;
-		
-
-		// try {
-		// file = nameNode.createFile("world", (byte)2);
-		// debugPrintDir("", nameNode.getDir(""));
-		// file.open();
-		// file.write("file data");
-		// System.out.printf("read: '%s'\n", new String(file.read()));
-		// } catch (RemoteException e) {
-		// e.printStackTrace();
-		// } catch (RemoteDirNotFoundException e) {
-		// e.printStackTrace();
-		// } catch (RemoteFileAlreadyOpenException e) {
-		// System.err.println("File already open.");
-		// } catch (AllDataNodesAreDeadException e) {
-		// System.err.println("All DataNodes died.");
-		// } finally {
-		// if (file != null)
-		// file.tryToClose();
-		// }
-	}
+	
 
 	public void debugPrintNamespace(String prefix, RemoteDir dir)
 			throws RemoteException {

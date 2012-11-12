@@ -1,6 +1,7 @@
 package client;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.FileAlreadyExistsException;
@@ -20,7 +21,7 @@ import common.protocols.RemoteDataNode;
 import common.protocols.RemoteFile;
 
 
-public class YAHASFile implements Serializable {
+public class YAHASFile implements Serializable, Closeable {
 	private static final long serialVersionUID = -1422394544577820093L;
 	private RemoteFile remoteFile;
 	private boolean iOpenedIt = false;
@@ -92,19 +93,12 @@ public class YAHASFile implements Serializable {
 			throw new FileAlreadyOpenException();
 	}
 	
-	public void close() throws RemoteException, FileAlreadyOpenException {
-		if (!iOpenedIt)
-			throw new FileAlreadyOpenException();
-		else {
+	@Override
+	public void close() throws RemoteException {
+		if (iOpenedIt) {
 			iOpenedIt = false;
 			remoteFile.close();
 		}
-	}
-	
-	public void forceClose() {
-		try {
-			close();
-		} catch (RemoteException | FileAlreadyOpenException e) {}
 	}
 	
 	public void move(String to) throws NotDirectoryException, FileAlreadyExistsException, RemoteException, NoSuchFileOrDirectoryException {

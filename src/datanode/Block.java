@@ -79,7 +79,7 @@ public class Block implements RemoteBlock {
 	
 
 	@Override
-	public byte[] read() throws RemoteException {
+	public byte[] read() {
 		byte[] byteArray = new byte[(int)file.length()];
 		
 		try {
@@ -126,7 +126,7 @@ public class Block implements RemoteBlock {
 
 	private void tryToWriteToFile(byte[] data) throws RemoteException {
 		try {
-			OutputStream writer = new FileOutputStream(file);
+			OutputStream writer = new FileOutputStream(file, true);
 			writer.write(data);
 			writer.close();
 			LOGGER.debug(toString()+" appended");
@@ -148,19 +148,19 @@ public class Block implements RemoteBlock {
 	
 
 	@Override
-	public long getID() throws RemoteException {
+	public long getID() {
 		return blockID;
 	}
 
 	@Override
-	public int getPreferredBlockSize() throws RemoteException {
+	public int getPreferredBlockSize() {
 		// TODO Auto-generated method stub
 		return 65536;
 	}
 
 	@Override
-	public int getRemainingSize() throws RemoteException {
-		return 100;
+	public int getRemainingSize() {
+		return getPreferredBlockSize() - (int)file.length();
 	}
 
 	@Override

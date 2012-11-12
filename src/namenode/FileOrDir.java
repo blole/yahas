@@ -41,7 +41,7 @@ abstract class FileOrDir implements Remote  {
 		if (parent != null) {
 			parent.remove(this);
 			parent = null;
-			LOGGER.debug(String.format("%s '%s' deleted.", getType().name(), name));
+			LOGGER.debug(toString()+" deleted");
 		}
 	}
 	

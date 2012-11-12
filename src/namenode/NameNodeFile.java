@@ -119,7 +119,7 @@ public class NameNodeFile extends FileOrDir implements RemoteFile {
 	 */
 	@Override
 	public LocatedBlock getWritingBlock() {
-		if (blocks.size() != 0 && getLastBlock().getBytesLeft() != 0)
+		if (blocks.size() > 0 && getLastBlock().getBytesLeft() > 0)
 			return getLastBlock();
 		else
 			return addBlock();
@@ -137,7 +137,7 @@ public class NameNodeFile extends FileOrDir implements RemoteFile {
 	
 	@Override
 	public String toString() {
-		return "[File "+getName()+"]";
+		return "[File "+getPath()+"]";
 	}
 	
 	public YAHASFile getYAHASFile() {

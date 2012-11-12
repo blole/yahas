@@ -3,9 +3,7 @@ package datanode;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -79,71 +77,71 @@ public class Block implements RemoteBlock {
 	
 
 	@Override
-	public byte[] read() {
+	public byte[] read() throws RemoteException {
 		byte[] byteArray = new byte[(int)file.length()];
 		
-		try {
-			InputStream input = null;
-			try {
-				int totalBytesRead = 0;
-				input = new BufferedInputStream(new FileInputStream(file));
-				while (totalBytesRead < byteArray.length) {
-					int bytesRemaining = byteArray.length - totalBytesRead;
-					//input.read() returns -1, 0, or more :
-					int bytesRead;
-						bytesRead = input.read(byteArray, totalBytesRead, bytesRemaining);
-					if (bytesRead > 0)
-						totalBytesRead = totalBytesRead + bytesRead;
-				}
-			} finally {
-				if (input != null)
-					input.close();
-			}
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
+			input.read(byteArray);
+			//TODO: maybe calculate hash while reading
+			LOGGER.debug(this+" read");
+			return byteArray;
+		} catch (IOException e) {
+			String errorMessage = this+" error while reading "+file.getAbsolutePath();
+			LOGGER.error(errorMessage, e);
+			throw new RemoteException(errorMessage, e);
 		}
-		catch (IOException e) {
-			LOGGER.error("Error reading file "+file.getAbsolutePath(), e);
-		}
-		LOGGER.debug(toString()+" read");
-		return byteArray;
-		//TODO: maybe calculate hash while reading
 	}
 	
 	@Override
 	public void write(byte[] data) throws RemoteException {
-		tryToWriteToFile(data);
+		writeToFile(data);
 	}
 	
 	@Override
-	public void writePipeline(byte[] data,
-			List<DataNodeDataNodeProtocol> dataNodes) throws RemoteException {
-		tryToWriteToFile(data);
-		LOGGER.debug(String.format("%s replicating to %d DataNodes", toString(), dataNodes.size()));
-		ReplicationHelper.write(data, blockID, dataNodes);
+	public void writePipeline(final byte[] data,
+			final List<DataNodeDataNodeProtocol> dataNodes) throws RemoteException {
+		writeToFile(data);
+		
+		new Thread() {
+			@Override
+			public void run() {
+				LOGGER.debug(this+" replicating to "+dataNodes.size()+" DataNodes");
+				ReplicationHelper.write(data, blockID, dataNodes);
+			};
+		}.start();
 	}
 
-	private void tryToWriteToFile(byte[] data) throws RemoteException {
-		try {
-			OutputStream writer = new FileOutputStream(file, true);
+	private void writeToFile(byte[] data) throws RemoteException {
+		try (OutputStream writer = new FileOutputStream(file, true)) {
 			writer.write(data);
-			writer.close();
 			LOGGER.debug(toString()+" appended");
-
-			String hashVal = DigestUtils.md5Hex(data);
-			FileWriter hashWriter = new FileWriter(hashFile);
-			hashWriter.write(""+hashVal);
-			hashWriter.close();
-			LOGGER.debug(toString()+" new MD5 hash: "+ hashVal);
+			writeHash(DigestUtils.md5Hex(data).getBytes());
 		} catch (IOException e) {
-			String errormessage = toString()+" error while appending";
+			String errormessage = this+" error while appending";
 			LOGGER.error(errormessage, e);
 			throw new RemoteException(errormessage, e);
 		}
 	}
 	
+	private void writeHash(byte[] hash) {
+		try (OutputStream writer = new FileOutputStream(hashFile)){
+			writer.write(hash);
+			LOGGER.debug(this+" saved new hash");
+		} catch (IOException e) {
+			LOGGER.error(this+" error writing new hash", e);
+		}
+	}
 	
+	private byte[] readHash() {
+		byte[] byteArray = new byte[(int) hashFile.length()];
+		try (InputStream reader = new BufferedInputStream(new FileInputStream(hashFile))) {
+			reader.read(byteArray);
+			LOGGER.debug(this+" read hash");
+		} catch (IOException e) {
+			LOGGER.error(this+" error writing hash", e);
+		}
+		return byteArray;
+	}
 	
 	
 

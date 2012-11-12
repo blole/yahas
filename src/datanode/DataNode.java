@@ -154,11 +154,10 @@ public class DataNode implements RemoteDataNode {
 	public static void saveID(String baseDir, int id) {
 		File idFile = new File(baseDir+Constants.ID_FILE_NAME);
 		idFile.getParentFile().mkdirs();
-		try {
+		
+		try (FileWriter writer = new FileWriter(idFile)) {
 			idFile.createNewFile();
-			FileWriter writer = new FileWriter(idFile);
 			writer.write("" + id);
-			writer.close();
 		} catch (IOException e) {
 			System.err.printf("could not save ID to file '%s'\n",
 					idFile.getAbsolutePath());
@@ -170,38 +169,30 @@ public class DataNode implements RemoteDataNode {
 	public static int getSavedID(String baseDir) {
 		File idFile = new File(baseDir+Constants.ID_FILE_NAME);
 		if (idFile.exists()) {
-			try {
-				FileReader reader = new FileReader(idFile);
-				String idString = new BufferedReader(reader).readLine();
-				reader.close();
+			try (BufferedReader reader = new BufferedReader(new FileReader(idFile))) {
+				String idString = reader.readLine();
 				int id = Integer.parseInt(idString);
 				System.out.printf("Read ID from file: %d\n", id);
 				return id;
 			} catch (IOException e) {
-				System.err.printf("Could not read saved ID from file '%s'",
-						idFile.getAbsolutePath());
-				e.printStackTrace();
-				System.exit(1);
+				throw new RuntimeException(String.format("Could not read saved ID from file '%s'",
+						idFile.getAbsolutePath()), e);
 			} catch (NumberFormatException e) {
-				System.err.printf("The file '%s' did not contain a valid ID.",
-						idFile.getAbsolutePath());
-				System.exit(1);
+				throw new RuntimeException(String.format("The file '%s' did not contain a valid ID.",
+						idFile.getAbsolutePath()));
 			}
 		}
-		return -1;
+		else
+			return -1;
 	}
 
 	public static int registerForNewID(DataNodeNameNodeProtocol nameNode) {
 		try {
 			int id = nameNode.register();
-			System.out.printf(
-					"registered with the NameNode for the new ID: %d\n", id);
+			System.out.printf("registered with the NameNode for the new ID: %d\n", id);
 			return id;
 		} catch (RemoteException e) {
-			System.err.println("error while registering with the NameNode:");
-			System.err.println(e.getMessage());
-			System.exit(1);
+			throw new RuntimeException("error while registering with the NameNode", e);
 		}
-		return 0; // never executed;
 	}
 }

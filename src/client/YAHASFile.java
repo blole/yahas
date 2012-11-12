@@ -68,13 +68,13 @@ public class YAHASFile implements Serializable {
 		if (!iOpenedIt)
 			throw new FileAlreadyOpenException();
 		
-		for (int i=0; i<data.length; ) {
+		for (int alreadyWrittenBytes=0; alreadyWrittenBytes<data.length; ) {
 			LocatedBlock block = remoteFile.getWritingBlock();
 			int bytesLeft = block.getBytesLeft();
 			
-			int split = Math.min(bytesLeft, data.length);
-			block.write(Arrays.copyOfRange(data, i, split));
-			i+= split;
+			int split = Math.min(bytesLeft, data.length-alreadyWrittenBytes);
+			block.write(Arrays.copyOfRange(data, alreadyWrittenBytes, alreadyWrittenBytes+split));
+			alreadyWrittenBytes+= split;
 		}
 	}
 	

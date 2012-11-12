@@ -93,8 +93,9 @@ public class DataNode implements RemoteDataNode {
 		Block block = blocks.get(blockID);
 		if (block == null)
 			block = blocks.newBlock(blockID);
-		
-		LOGGER.debug(block+" created");
+		else
+			LOGGER.debug(block+" served");
+			
 		return block.getStub();
 	}
 	

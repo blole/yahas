@@ -193,7 +193,7 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 			if (file.getType() == Type.File)
 				files.add(((NameNodeFile)file).getYAHASFile());
 		}
-		LOGGER.debug(String.format("Listed files in %s", this));
+		LOGGER.debug(toString()+" listed files");
 		return files;
 	}
 
@@ -204,7 +204,7 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 			if (dir.getType() == Type.Directory)
 				subDirs.add(((NameNodeDir)dir).getStub());
 		}
-		LOGGER.debug(String.format("Listed sub-directories in %s", this));
+		LOGGER.debug(toString()+" listed sub-directories");
 		return subDirs;
 	}
 	

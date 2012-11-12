@@ -59,7 +59,6 @@ public class Client {
 			if (file != null)
 				file.forceClose();
 		}
-
 	}
 	
 	public String readFile (String fileName) {

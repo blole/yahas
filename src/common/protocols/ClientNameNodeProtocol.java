@@ -4,9 +4,8 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NotDirectoryException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.List;
 
-import client.YAHASFile;
+import client.ClientFile;
 
 import common.exceptions.BadFileName;
 import common.exceptions.NoSuchFileOrDirectoryException;
@@ -36,7 +35,7 @@ public interface ClientNameNodeProtocol extends Remote {
 	 * @throws BadFileName 
 	 * @throws RemoteDirNotFoundException
 	 */
-	YAHASFile createFile(String name, byte replicationFactor) throws RemoteException, FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName;
+	ClientFile createFile(String name, byte replicationFactor, int blockSize) throws RemoteException, FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName;
 
 	/**
 	 * Get the FileHandle
@@ -48,7 +47,7 @@ public interface ClientNameNodeProtocol extends Remote {
 	 * @throws NotDirectoryException 
 	 * @throws RemoteFileNotFoundException
 	 */
-	YAHASFile getFile(String name) throws RemoteException, NotDirectoryException,
+	ClientFile getFile(String name) throws RemoteException, NotDirectoryException,
 					NoSuchFileOrDirectoryException, NotFileException;
 
 
@@ -79,11 +78,4 @@ public interface ClientNameNodeProtocol extends Remote {
 	 * @throws NotDirectoryException 
 	 */
 	RemoteDir getDir(String name) throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException;
-
-	/**
-	 * Gets DataNodes
-	 * @return
-	 * @throws RemoteException
-	 */
-	List<? extends ClientDataNodeProtocol> getDataNodes() throws RemoteException;
 }

@@ -1,22 +1,22 @@
 package namenode;
 
 import java.rmi.RemoteException;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import client.YAHASFile;
+import client.ClientBlock;
+import client.ClientFile;
 
 import common.Action;
 import common.Constants;
-import common.LocatedBlock;
 import common.RMIHelper;
 import common.TimeoutHashSet;
 import common.exceptions.FileAlreadyOpenException;
 import common.protocols.RemoteFile;
 
-public class NameNodeFile extends FileOrDir implements RemoteFile {
+public class NameNodeFile extends NameNodeFileOrDir implements RemoteFile {
 	private static final Logger LOGGER = Logger.getLogger(
 			NameNodeFile.class.getCanonicalName());
 	
@@ -33,23 +33,25 @@ public class NameNodeFile extends FileOrDir implements RemoteFile {
 	
 
 	private NameNode nameNode;
-	private final ArrayList<LocatedBlock> blocks = new ArrayList<>();
+	private final LinkedList<BlockImage> blocks = new LinkedList<>();
 	private byte replicationFactor;
-	private YAHASFile yahasFile;
+	private ClientFile yahasFile;
+	private int blockSize;
 	private boolean isOpen;
 
 
 
 
 	
-	public NameNodeFile(NameNode nameNode, String name, byte replicationFactor) {
+	public NameNodeFile(NameNode nameNode, String name, byte replicationFactor, int blockSize) {
 		super(name);
 		this.nameNode = nameNode;
 		this.replicationFactor = replicationFactor;
+		this.blockSize = blockSize;
 		this.isOpen = false;
 				
 		try {
-			this.yahasFile = new YAHASFile(this);
+			this.yahasFile = new ClientFile(this);
 		} catch (RemoteException e) {
 			LOGGER.error("Error creating file "+name, e);
 		}
@@ -100,17 +102,10 @@ public class NameNodeFile extends FileOrDir implements RemoteFile {
 	
 	
 	
-	@Override
-	public LocatedBlock addBlock() {
-		LocatedBlock block = new LocatedBlock(nameNode.getNewBlockID(),
-				nameNode.getAppropriateDataNodes(replicationFactor));
-		blocks.add(block);
-		return block;
-	}
-	
-	@Override
-	public LocatedBlock getLastBlock() {
-		return blocks.get(blocks.size()-1);
+	private BlockImage addBlock() {
+		BlockImage newBlock = nameNode.addNewBlock(replicationFactor, blockSize);
+		blocks.add(newBlock);
+		return newBlock;
 	}
 	
 	/**
@@ -118,17 +113,26 @@ public class NameNodeFile extends FileOrDir implements RemoteFile {
 	 * if the file doesn't have any blocks yet, it adds a new one first.
 	 */
 	@Override
-	public LocatedBlock getWritingBlock() {
-		if (blocks.size() > 0 && getLastBlock().getBytesLeft() > 0)
-			return getLastBlock();
+	public ClientBlock getWritingBlock() {
+		BlockImage writingBlock;
+		if (blocks.size() > 0 && !blocks.getLast().isFull())
+			writingBlock = blocks.getLast();
 		else
-			return addBlock();
+			writingBlock = addBlock();
+		return 	new ClientBlock(writingBlock);
 	}
 	
 	@Override
-	public List<LocatedBlock> getBlocks() {
-		return blocks;
+	public List<ClientBlock> getBlocks() {
+		List<ClientBlock> list = new LinkedList<>();
+		for (BlockImage block : blocks)
+			list.add(new ClientBlock(block));
+		return list;
 	}
+	
+	
+	
+	
 	
 	@Override
 	public Type getType() {
@@ -140,7 +144,7 @@ public class NameNodeFile extends FileOrDir implements RemoteFile {
 		return "[File "+getPath()+"]";
 	}
 	
-	public YAHASFile getYAHASFile() {
+	public ClientFile getYAHASFile() {
 		return yahasFile;
 	}
 	

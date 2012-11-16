@@ -14,31 +14,16 @@ import java.util.List;
  */
 public interface RemoteBlock extends Remote {
 	
-	/**
-	 * Gets the Id of the RemoteBlock
-	 * 
-	 * @return
-	 * @throws RemoteException
-	 */
-
-	long getID() throws RemoteException;
-
-	/**
-	 * Gets the Preferred Block Size
-	 * 
-	 * @return
-	 * @throws RemoteException
-	 */
-
-	int getPreferredBlockSize() throws RemoteException;
-
-	/**
-	 * Gets the remaining size
-	 * 
-	 * @return
-	 * @throws RemoteException
-	 */
-	int getRemainingSize() throws RemoteException;
+//	/**
+//	 * Gets the Id of the RemoteBlock
+//	 * 
+//	 * @return
+//	 * @throws RemoteException
+//	 */
+//
+//	long getID() throws RemoteException;
+	
+	byte[] read() throws RemoteException;
 
 	/**
 	 * Write content specified by s into the block
@@ -65,6 +50,4 @@ public interface RemoteBlock extends Remote {
 	 * @throws RemoteException
 	 */
 	void delete() throws RemoteException;
-
-	byte[] read() throws RemoteException;
 }

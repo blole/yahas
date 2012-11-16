@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 
-public class TimeoutHashSet<K>  {
+public class TimeoutHashSet<K> {
 	
 	private HashMap<K, Long> hashMap = new HashMap<>();
 

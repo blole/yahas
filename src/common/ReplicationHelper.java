@@ -19,7 +19,6 @@ public class ReplicationHelper {
 			long blockID, List<? extends DataNodeDataNodeProtocol> dataNodes) {
 		List<DataNodeDataNodeProtocol> remoteDataNodes = new LinkedList<>(dataNodes);
 		RemoteBlock nextBlock = moveToNextBlock(remoteDataNodes, blockID);
-		
 		while (nextBlock != null) {
 			try {
 				if (remoteDataNodes.size() > 1)

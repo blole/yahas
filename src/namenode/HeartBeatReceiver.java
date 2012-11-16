@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.SocketException;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 
 import common.Action;
 import common.Constants;
@@ -16,33 +13,34 @@ import common.TimeoutHashSet;
 
 public class HeartBeatReceiver implements Runnable {
 	private DatagramSocket incomingHeartBeatSocket;
-	private NameNode reportBackTo;
+	private NameNode nameNode;
 	
 	//Removes an element when a timeout happens
-	private TimeoutHashSet<DataNodeImage> connectedDataNodes;
+	private TimeoutHashSet<Integer> connectedDataNodes;
 //	private static final Logger LOGGER = Logger.getLogger(HeartBeatReceiver.class.getCanonicalName());
 
 	public HeartBeatReceiver(NameNode reportBackTo, int heartBeatPort) {
 		try {
 			incomingHeartBeatSocket = new DatagramSocket(heartBeatPort);
 		} catch (SocketException e) {
-			System.err.printf("Could not bind to HeartBeat port %d: %s\n", heartBeatPort, e.getLocalizedMessage());
-			System.exit(1);
+			String errorMessage = String.format("Could not bind to HeartBeat port %d: %s\n",
+					heartBeatPort, e.getLocalizedMessage());
+			throw new RuntimeException(errorMessage);
 		}
 		
-		this.reportBackTo = reportBackTo;
+		this.nameNode = reportBackTo;
 	}
 
 	@Override
 	public void run() {
 		byte[] buf = new byte[1024];
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
-		connectedDataNodes = new TimeoutHashSet<DataNodeImage>(
+		connectedDataNodes = new TimeoutHashSet<>(
 				Constants.DEFAULT_HEARTBEAT_TIMEOUT_MS,
-				new Action<DataNodeImage>(){
+				new Action<Integer>(){
 					@Override
-					public void execute(DataNodeImage dataNodeImage) {
-						reportBackTo.dataNodeDisconnected(dataNodeImage);
+					public void execute(Integer dataNodeID) {
+						nameNode.dataNodeDisconnected(dataNodeID);
 					}
 				}
 			);
@@ -63,18 +61,8 @@ public class HeartBeatReceiver implements Runnable {
 				
 				int dataNodeID = Convert.byteArrayToInt(b);
 				
-				try {
-					DataNodeImage dataNodeImage = new DataNodeImage(dataNodeID, (InetSocketAddress)packet.getSocketAddress());
-//					LOGGER.debug("Heart Beat received from " + dataNodeID);
-					if (connectedDataNodes.addOrRefresh(dataNodeImage))
-						reportBackTo.dataNodeConnected(dataNodeImage);
-				} catch (MalformedURLException | RemoteException e) {
-					e.printStackTrace();
-					System.err.printf("DataNode '%d' failed to connect:\n%s\n", dataNodeID, e.getLocalizedMessage());
-				} catch (NotBoundException e) {
-					System.err.printf("DataNode '%d' failed to connect:\n" +
-							"the remote DataNode was not bound in the rmiregistry.\n", dataNodeID);
-				}
+				if (connectedDataNodes.addOrRefresh(dataNodeID))
+					nameNode.dataNodeConnected(dataNodeID, (InetSocketAddress)packet.getSocketAddress());
 			}
 		}
 	}

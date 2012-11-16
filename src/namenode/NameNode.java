@@ -1,22 +1,21 @@
 package namenode;
 
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NotDirectoryException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteServer;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.LinkedList;
 
 import org.apache.log4j.Logger;
 import org.javatuples.Pair;
 
-import client.YAHASFile;
+import client.ClientFile;
 
-import common.BlockReport;
+import common.BlockInfo;
 import common.Constants;
 import common.RMIHelper;
 import common.exceptions.BadFileName;
@@ -28,48 +27,44 @@ import common.protocols.RemoteNameNode;
 
 public class NameNode extends RemoteServer implements RemoteNameNode {
 	private static final long serialVersionUID = -8076847401609606850L;
-	private HashSet<DataNodeImage> connectedDataNodes = new HashSet<>();
-	private final HashMap<DataNodeImage, Set<Long>> dataNodeToBlockMap = new HashMap<>();
-	private final HashMap<Long, Set<DataNodeImage>> blockToDataNodeMap = new HashMap<>();
-
 	private final static Logger LOGGER = Logger.getLogger(NameNode.class
 			.getCanonicalName());
+	
+	private final HashMap<Integer, DataNodeImage> connectedDataNodes = new HashMap<>();
+	private final HashMap<Long, BlockImage> allBlocks = new HashMap<>();
 
-
-
-
-
+	
+	
+	
+	
 	private HeartBeatReceiver heartBeatReceiver;
-	private BlockReportReceiver blockReportReceiver;
+	private BlockReportRetriever blockReportReceiver;
 	private final NameNodeRootDir root;
 	private int dataNodeIdCounter;
-	private int blockIdCounter;
+	private int blockIDCounter;
 
 	public NameNode(int heartBeatPort) {
 		heartBeatReceiver = new HeartBeatReceiver(this, heartBeatPort);
-		blockReportReceiver = new BlockReportReceiver(this, Constants.DEFAULT_BLOCKREPORT_TIME_MS);
+		blockReportReceiver = new BlockReportRetriever(this, Constants.DEFAULT_BLOCKREPORT_TIME_MS);
 		root = new NameNodeRootDir();
 		dataNodeIdCounter = 0;
-		blockIdCounter = 0;
+		blockIDCounter = 0;
 	}
-	
 	private void start() {
 		new Thread(heartBeatReceiver).start();
 		new Thread(blockReportReceiver).start();
 	
 		LOGGER.info("Listening for HeartBeats on port "
 				+ heartBeatReceiver.getPort());
-		LOGGER.info("Server Ready\n");
-	
+		LOGGER.info("NameNode Ready\n");
 	}
 	
+	
+	
+	
+	
 	@Override
-	public YAHASFile getFile(String path) throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException {
-		return root.getFile(path).getYAHASFile();
-	}
-
-	@Override
-	public YAHASFile createFile(String path, byte replicationFactor) throws FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName {
+	public ClientFile createFile(String path, byte replicationFactor, int blockSize) throws FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName {
 		Pair<NameNodeDir, String> pair = root.getLastDir(path, false);
 		
 		if (pair.getValue0() == null)
@@ -77,11 +72,16 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		else {
 			NameNodeDir dir = pair.getValue0();
 			String fileName = pair.getValue1();
-			NameNodeFile file = new NameNodeFile(this, fileName, replicationFactor);
+			NameNodeFile file = new NameNodeFile(this, fileName, replicationFactor, blockSize);
 			dir.moveHere(file, fileName);
 			LOGGER.debug(file+" created");
 			return file.getYAHASFile();
 		}
+	}
+	
+	@Override
+	public ClientFile getFile(String path) throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException {
+		return root.getFile(path).getYAHASFile();
 	}
 
 	@Override
@@ -108,90 +108,74 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		return dataNodeIdCounter++;
 	}
 
-	@Override
-	public void blockReceived(long blockId) throws RemoteException {
-		// TODO Auto-generated method stub
+	public LinkedList<RemoteDataNode> getAppropriateDataNodes(int replicationFactor) {
+		// TODO return APPROPRIATE DataNodes, not replicationFactor many
+		LinkedList<RemoteDataNode> list = new LinkedList<>();
+		for (DataNodeImage dataNode : connectedDataNodes.values()) {
+			list.add(dataNode.getRemoteStub());
+			if (list.size() >= replicationFactor)
+				break;
+		}
+		return list;
+	}
+	
+	
+	
+	
+	
+	public void dataNodeConnected(int dataNodeID, InetSocketAddress address) {
+		DataNodeImage dataNode;
+		try {
+			dataNode = new DataNodeImage(dataNodeID, address, this);
+		} catch (MalformedURLException | RemoteException e) {
+			LOGGER.error("DataNode "+dataNodeID+" failed to connect", e);
+			return;
+		} catch (NotBoundException e) {
+			LOGGER.error("DataNode "+dataNodeID+" failed to connect, " +
+					"the remote DataNode was not bound in the rmiregistry");
+			return;
+		}
 		
+		connectedDataNodes.put(dataNode.id, dataNode);
+		dataNode.connected();
+	}
+	
+	public void dataNodeDisconnected(int dataNodeID) {
+		DataNodeImage dataNode = connectedDataNodes.remove(dataNodeID);
+		if (dataNode != null)
+			dataNode.disconnected();
 	}
 	
 	@Override
-	public List<RemoteDataNode> getDataNodes() throws RemoteException {
-		ArrayList<RemoteDataNode> list = new ArrayList<>();
-		for (DataNodeImage dataNode : connectedDataNodes) {
-			list.add(dataNode.stub);
+	public void blockReceived(int dataNodeID, BlockInfo blockInfo) {
+		DataNodeImage dataNode = connectedDataNodes.get(dataNodeID);
+		if (dataNode == null)
+			LOGGER.error("Non-connected DataNode "+dataNodeID+" reports having received a block");
+		else {
+			dataNode.blockReceived(blockInfo);
 		}
-		return list;
 	}
-
-	public List<RemoteDataNode> getAppropriateDataNodes(byte replicationFactor) {
-		// TODO return APPROPRIATE DataNodes, not all
-		ArrayList<RemoteDataNode> list = new ArrayList<>();
-		for (DataNodeImage dataNode : connectedDataNodes) {
-			list.add(dataNode.stub);
-		}
-		return list;
+	
+	public BlockImage getBlock(long blockID) {
+		return allBlocks.get(blockID);
 	}
 	
 	
 	
 	
 	
-	public HashSet<DataNodeImage> getConnectedDataNodes() {
+//	public boolean doneStarting() {
+//		return true;
+//	}
+	
+	public BlockImage addNewBlock(int replicationFactor, int blockSize) {
+		BlockImage block = new BlockImage(blockIDCounter++, replicationFactor, blockSize, this);
+		allBlocks.put(block.blockID, block);
+		return block;
+	}
+	
+	public HashMap<Integer, DataNodeImage> getConnectedDataNodes() {
 		return connectedDataNodes;
-	}
-	
-	public long getNewBlockID() {
-		return blockIdCounter++;
-	}
-	
-	
-	
-	
-	public void dataNodeConnected(DataNodeImage dataNode) {
-		connectedDataNodes.add(dataNode);
-		LOGGER.info(dataNode + " connected");
-		
-		blockReportReceiver.getBlockReportFrom(dataNode);
-	}
-
-	public void dataNodeDisconnected(DataNodeImage dataNode) {
-		if (connectedDataNodes.remove(dataNode))
-			LOGGER.info(dataNode + " disconnected");
-		
-		removeReferencesToDataNodeFromBlockToDataNodeMap(dataNode);
-	}
-	
-	public void receiveBlockReport(DataNodeImage from, BlockReport blockReport) {
-		removeReferencesToDataNodeFromBlockToDataNodeMap(from);
-		
-		for (long blockID : blockReport.blockIDs) {
-			Set<DataNodeImage> dataNodes = blockToDataNodeMap.get(blockID);
-			if (dataNodes == null)
-				dataNodes = new HashSet<>();
-			dataNodes.add(from);
-		}
-		
-		dataNodeToBlockMap.put(from, blockReport.blockIDs);
-	}
-
-	private void removeReferencesToDataNodeFromBlockToDataNodeMap(DataNodeImage dataNode) {
-		Set<Long> oldBlocks = dataNodeToBlockMap.get(dataNode);
-		if (oldBlocks != null) {
-			for (long oldBlock : oldBlocks) {
-				Set<DataNodeImage> dataNodes = blockToDataNodeMap.get(oldBlock);
-				if (dataNodes != null) {
-					dataNodes.remove(dataNode);
-					if (dataNodes.isEmpty())
-						blockToDataNodeMap.remove(dataNodes);
-				}
-			}
-		}
-	}
-	
-	
-	
-	private RemoteNameNode getStub() throws RemoteException {
-		return (RemoteNameNode) RMIHelper.getStub(this);
 	}
 	
 	
@@ -205,13 +189,12 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		RMIHelper.makeSureRegistryIsStarted(nameNodePort);
 		NameNode nameNode = new NameNode(Constants.DEFAULT_NAME_NODE_HEARTBEAT_PORT);
 		try {
-			RemoteNameNode stub = nameNode.getStub();
+			RemoteNameNode stub = (RemoteNameNode) RMIHelper.getStub(nameNode);
 			RMIHelper.rebindAndHookUnbind("NameNode", stub);
 		} catch (RemoteException | MalformedURLException e) {
-			LOGGER.error("Server exception: "
-					+ e.getLocalizedMessage().split(";")[0]);
-			e.printStackTrace();
-			System.exit(1);
+			String errorMessage = "error setting up server";
+			LOGGER.error(errorMessage, e);
+			throw new RuntimeException(errorMessage, e);
 		}
 		
 		nameNode.start();

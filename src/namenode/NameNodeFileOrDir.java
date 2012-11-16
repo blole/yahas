@@ -9,9 +9,9 @@ import org.javatuples.Pair;
 
 import common.exceptions.NoSuchFileOrDirectoryException;
 
-abstract class FileOrDir implements Remote  {
+abstract class NameNodeFileOrDir implements Remote  {
 	private static final Logger LOGGER = Logger.getLogger(
-			FileOrDir.class.getCanonicalName());
+			NameNodeFileOrDir.class.getCanonicalName());
 	
 	public enum Type {
 		File,
@@ -21,8 +21,8 @@ abstract class FileOrDir implements Remote  {
 	protected NameNodeDir parent;
 	protected String name;
 	
-	public FileOrDir(String name) {
-		
+	public NameNodeFileOrDir(String name) {
+		this.name = name;
 	}
 	
 	

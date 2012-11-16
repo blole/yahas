@@ -6,7 +6,7 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 import namenode.NameNodeFile;
-import client.YAHASFile;
+import client.ClientFile;
 
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.exceptions.NotFileException;
@@ -32,7 +32,7 @@ public interface RemoteDir extends RemoteFileOrDir {
 	 * @return
 	 * @throws RemoteException
 	 */
-	List<YAHASFile> getFiles() throws RemoteException;
+	List<ClientFile> getFiles() throws RemoteException;
 
 	/**
 	 * Get the Child Directories of a particular Directory

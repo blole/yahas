@@ -31,7 +31,7 @@ public class Client {
 	
 	
 	public void createFile(String fileName, int repFactor, byte[] contents) {
-		try (YAHASFile file = nameNode.createFile(fileName, (byte) repFactor)){
+		try (ClientFile file = nameNode.createFile(fileName, (byte) repFactor, 65536)) {
 			file.open();
 			file.write(contents);
 			LOGGER.debug("File " + fileName + " created Successfully");
@@ -61,7 +61,7 @@ public class Client {
 	}
 	
 	public String readFile (String fileName) {
-		try (YAHASFile file = nameNode.getFile(fileName)) {
+		try (ClientFile file = nameNode.getFile(fileName)) {
 			file.open();
 			return new String(file.read());
 		} catch (RemoteException | FileAlreadyOpenException |
@@ -87,7 +87,7 @@ public class Client {
 			for (RemoteDir subDir : dir.getSubDirs()){
 				LOGGER.debug("*" + subDir.getPath());
 			}
-			for(YAHASFile file : dir.getFiles()){
+			for(ClientFile file : dir.getFiles()){
 				LOGGER.debug("-" + file.getName());
 			}
 		} catch (RemoteException | NotDirectoryException | NoSuchFileOrDirectoryException e) {
@@ -106,7 +106,7 @@ public class Client {
 		System.out.println(prefix + dir.getPath());
 		for (RemoteDir subDir : dir.getSubDirs())
 			debugPrintNamespace(prefix + "  ", subDir);
-		for (YAHASFile file : dir.getFiles())
+		for (ClientFile file : dir.getFiles())
 			System.out.println(prefix + "-" + file.getName());
 	}
 
@@ -116,7 +116,7 @@ public class Client {
 		RMIHelper.maybeStartSecurityManager();
 		Remote nameNode = RMIHelper.lookup(nameNodeAddress);
 		Client client = new Client((ClientNameNodeProtocol) nameNode);
-		client.createFile("world", 2, "file data".getBytes());
+		client.createFile("/world", 2, "file data".getBytes());
 		RemoteDir rootDir;
 		try {
 			rootDir = client.nameNode.getDir("");

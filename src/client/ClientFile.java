@@ -7,12 +7,10 @@ import java.io.Serializable;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NotDirectoryException;
 import java.rmi.RemoteException;
-import java.util.Arrays;
 import java.util.List;
 
 import namenode.NameNodeFile;
 
-import common.LocatedBlock;
 import common.exceptions.AllDataNodesAreDeadException;
 import common.exceptions.BlockNotFoundException;
 import common.exceptions.FileAlreadyOpenException;
@@ -21,15 +19,15 @@ import common.protocols.RemoteDataNode;
 import common.protocols.RemoteFile;
 
 
-public class YAHASFile implements Serializable, Closeable {
+public class ClientFile implements Serializable, Closeable {
 	private static final long serialVersionUID = -1422394544577820093L;
 	private RemoteFile remoteFile;
 	private boolean iOpenedIt = false;
 	
-	public YAHASFile(NameNodeFile file) throws RemoteException {
+	public ClientFile(NameNodeFile file) throws RemoteException {
 		this(file.getStub());
 	}
-	public YAHASFile(RemoteFile remoteFile) {
+	public ClientFile(RemoteFile remoteFile) {
 		this.remoteFile = remoteFile;
 	}
 	
@@ -41,9 +39,9 @@ public class YAHASFile implements Serializable, Closeable {
 		if (!iOpenedIt)
 			throw new FileAlreadyOpenException(); //TODO better exception
 		
-		List<LocatedBlock> allBlocks = remoteFile.getBlocks();
+		List<ClientBlock> allBlocks = remoteFile.getBlocks();
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-		for (LocatedBlock block : allBlocks) {
+		for (ClientBlock block : allBlocks) {
 			boolean successful = false;
 			for (RemoteDataNode dataNode : block.getRemoteDataNodes()) {
 				try {
@@ -70,12 +68,8 @@ public class YAHASFile implements Serializable, Closeable {
 			throw new FileAlreadyOpenException();
 		
 		for (int alreadyWrittenBytes=0; alreadyWrittenBytes<data.length; ) {
-			LocatedBlock block = remoteFile.getWritingBlock();
-			int bytesLeft = block.getBytesLeft();
-			
-			int split = Math.min(bytesLeft, data.length-alreadyWrittenBytes);
-			block.write(Arrays.copyOfRange(data, alreadyWrittenBytes, alreadyWrittenBytes+split));
-			alreadyWrittenBytes+= split;
+			ClientBlock block = remoteFile.getWritingBlock();
+			alreadyWrittenBytes += block.write(data, alreadyWrittenBytes);
 		}
 	}
 	

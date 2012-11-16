@@ -3,6 +3,8 @@ package common.protocols;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+import common.BlockInfo;
+
 /**
  * Representation of the protocol used between Data Node and Name Node
  * 
@@ -29,8 +31,5 @@ public interface DataNodeNameNodeProtocol extends Remote {
 	 * @throws RemoteException
 	 */
 
-	void blockReceived(long blockId) throws RemoteException;
-	
-	
-	
+	void blockReceived(int dataNodeID, BlockInfo blockInfo) throws RemoteException;
 }

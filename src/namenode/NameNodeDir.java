@@ -11,18 +11,18 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.javatuples.Pair;
 
-import client.YAHASFile;
+import client.ClientFile;
 
 import common.RMIHelper;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.exceptions.NotFileException;
 import common.protocols.RemoteDir;
 
-public class NameNodeDir extends FileOrDir implements RemoteDir {
+public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 	private static final Logger LOGGER = Logger.getLogger(
 			NameNodeDir.class.getCanonicalName());
 	
-	private final HashMap<String, FileOrDir> contents = new HashMap<>();
+	private final HashMap<String, NameNodeFileOrDir> contents = new HashMap<>();
 	private RemoteDir stub;
 	
 	/**
@@ -42,8 +42,8 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	
 	
 	
-	public FileOrDir get(String path, boolean createParentsAsNeeded) throws NoSuchFileOrDirectoryException, NotDirectoryException {
-		FileOrDir dir;
+	public NameNodeFileOrDir get(String path, boolean createParentsAsNeeded) throws NoSuchFileOrDirectoryException, NotDirectoryException {
+		NameNodeFileOrDir dir;
 		if (path.startsWith("/"))
 			dir = getRoot();
 		else
@@ -80,19 +80,19 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	
 	@Override
 	public NameNodeFile getFile(String fullPath) throws NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException {
-		FileOrDir file = get(fullPath, false);
+		NameNodeFileOrDir file = get(fullPath, false);
 		if (file.getType() != Type.File) {
 			LOGGER.warn("Tried to serve "+file+" as a file");
 			throw new NotFileException();
 		}
 		else {
-			LOGGER.debug(file+ " serve");
+			LOGGER.debug(file+ " served");
 			return (NameNodeFile) file;
 		}
 	}
 	
 	public NameNodeDir getDir(String fullPath, boolean createParentsAsNeeded) throws NotDirectoryException, NoSuchFileOrDirectoryException {
-		FileOrDir dir = get(fullPath, createParentsAsNeeded);
+		NameNodeFileOrDir dir = get(fullPath, createParentsAsNeeded);
 		if (dir.getType() != Type.Directory)
 			throw new NotDirectoryException(dir.getName());
 		else
@@ -114,17 +114,23 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	 */
 	public Pair<NameNodeDir, String> getLastDir(String path, boolean createParentsAsNeeded)
 					throws NotDirectoryException, NoSuchFileOrDirectoryException {
-		path.replaceAll("/+$", ""); //remove trailing slashes
+		path = path.replaceAll("/+$", ""); //remove trailing slashes
 		int lastSlashIndex = path.lastIndexOf('/');
 		
-		if (lastSlashIndex < 0)
-			lastSlashIndex = 0;
-		String basePath = path.substring(0, lastSlashIndex);
-		String existingDirNameOrName = path.substring(lastSlashIndex);
+		NameNodeDir safeDir;
+		String existingDirNameOrName;
+		if (lastSlashIndex < 0) {
+			existingDirNameOrName = path;
+			safeDir = this;
+		}
+		else {
+			String basePath = path.substring(0, lastSlashIndex);
+			existingDirNameOrName = path.substring(lastSlashIndex+1);
+			safeDir = getDir(basePath, createParentsAsNeeded);
+		}
 		
-		NameNodeDir safeDir = getDir(basePath, createParentsAsNeeded);
 		try {
-			FileOrDir maybeDir = safeDir.get(existingDirNameOrName, false);
+			NameNodeFileOrDir maybeDir = safeDir.get(existingDirNameOrName, false);
 			if (maybeDir.getType() == Type.Directory)
 				return new Pair<>((NameNodeDir)maybeDir, null);
 		} catch (NoSuchFileOrDirectoryException e) {}
@@ -163,7 +169,7 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 		return subDir;
 	}
 	
-	public void moveHere(FileOrDir node, String newName) throws FileAlreadyExistsException {
+	public void moveHere(NameNodeFileOrDir node, String newName) throws FileAlreadyExistsException {
 		if (contents.containsKey(newName))
 			throw new FileAlreadyExistsException(newName);
 		if (node.parent != null)
@@ -187,9 +193,9 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	}
 	
 	@Override
-	public List<YAHASFile> getFiles() {
-		List<YAHASFile> files = new ArrayList<>();
-		for (FileOrDir file : contents.values()) {
+	public List<ClientFile> getFiles() {
+		List<ClientFile> files = new ArrayList<>();
+		for (NameNodeFileOrDir file : contents.values()) {
 			if (file.getType() == Type.File)
 				files.add(((NameNodeFile)file).getYAHASFile());
 		}
@@ -200,7 +206,7 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	@Override
 	public List<RemoteDir> getSubDirs() {
 		List<RemoteDir> subDirs = new ArrayList<>();
-		for (FileOrDir dir : contents.values()) {
+		for (NameNodeFileOrDir dir : contents.values()) {
 			if (dir.getType() == Type.Directory)
 				subDirs.add(((NameNodeDir)dir).getStub());
 		}
@@ -212,7 +218,7 @@ public class NameNodeDir extends FileOrDir implements RemoteDir {
 	
 	
 	
-	void remove(FileOrDir member) {
+	void remove(NameNodeFileOrDir member) {
 		contents.remove(member.getName());
 	}
 	

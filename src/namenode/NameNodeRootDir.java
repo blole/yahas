@@ -6,7 +6,7 @@ import java.nio.file.NotDirectoryException;
 public class NameNodeRootDir extends NameNodeDir {
 
 	public NameNodeRootDir() {
-		super(null);
+		super("/");
 		this.parent = this;
 	}
 	

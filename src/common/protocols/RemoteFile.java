@@ -4,7 +4,8 @@ import java.io.Closeable;
 import java.rmi.RemoteException;
 import java.util.List;
 
-import common.LocatedBlock;
+import client.ClientBlock;
+
 import common.exceptions.FileAlreadyOpenException;
 
 /**
@@ -44,29 +45,29 @@ public interface RemoteFile extends RemoteFileOrDir, Closeable {
 	
 	
 	
-	/**
-	 * Function to add a block to a file.
-	 * 
-	 * @return The Handle for the NewBlock. The LocatedBlock also contains a
-	 *         list of DataNodes also where this block is replicated.
-	 * @throws RemoteException
-	 */
-	LocatedBlock addBlock() throws RemoteException;
-
-	/**
-	 * Function to get the Last Block
-	 * 
-	 * @return
-	 * @throws RemoteException
-	 */
-	LocatedBlock getLastBlock() throws RemoteException;
+//	/**
+//	 * Function to add a block to a file.
+//	 * 
+//	 * @return The Handle for the NewBlock. The LocatedBlock also contains a
+//	 *         list of DataNodes also where this block is replicated.
+//	 * @throws RemoteException
+//	 */
+//	ClientBlock addBlock() throws RemoteException;
+//
+//	/**
+//	 * Function to get the Last Block
+//	 * 
+//	 * @return
+//	 * @throws RemoteException
+//	 */
+//	ClientBlock getLastBlock() throws RemoteException;
 
 	/**
 	 * Get The a Block With Writing
 	 * @return
 	 * @throws RemoteException
 	 */
-	LocatedBlock getWritingBlock() throws RemoteException;
+	ClientBlock getWritingBlock() throws RemoteException;
 	
 	/**
 	 * Gets the Blocks associated with this File.
@@ -75,5 +76,5 @@ public interface RemoteFile extends RemoteFileOrDir, Closeable {
 	 *         and DataNodes which has these Nodes.
 	 * @throws RemoteException
 	 */
-	List<LocatedBlock> getBlocks() throws RemoteException;
+	List<ClientBlock> getBlocks() throws RemoteException;
 }

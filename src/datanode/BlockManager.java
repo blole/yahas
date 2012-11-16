@@ -15,27 +15,31 @@ public class BlockManager extends HashMap<Long, Block> {
 			BlockManager.class.getCanonicalName());
 	
 	public final File blockDir;
+	public final DataNode dataNode;
 	
-	public BlockManager(String blockDirPath) {
+	public BlockManager(String blockDirPath, DataNode dataNode) {
 		this.blockDir = new File(blockDirPath);
+		this.dataNode = dataNode;
+		
 		if (!blockDir.exists())
 			blockDir.mkdirs();
 		else if (!blockDir.isDirectory()) {
-			LOGGER.error(String.format("'%s' is not a directory.", blockDir.getAbsolutePath()));
-			System.exit(1);
+			String errorMessage = String.format("'%s' is not a directory.", blockDir.getAbsolutePath());
+			LOGGER.error(errorMessage);
+			throw new RuntimeException(errorMessage);
 		}
 	}
 	
 	public Block newBlock(long blockID) throws RemoteException {
-		Block block = new Block(blockID, this);
-		put(block.blockID, block);
+		Block block = new Block(blockID, dataNode);
+		put(block.getID(), block);
 		return block;
 	}
 	
 	public BlockReport getBlockReport() {
 		//TODO in the future, continuously scan through all the blocks,
 		//calculating checksums and removing the bad ones.
-		return new BlockReport(this.keySet());
+		return new BlockReport(values());
 	}
 	
 	public void readFromDisk() {
@@ -60,7 +64,7 @@ public class BlockManager extends HashMap<Long, Block> {
 					continue;
 				}
 				
-				put(id, new Block(id, file, hashFile, this));
+				put(id, new Block(id, file, hashFile, dataNode));
 			}
 		}
 		LOGGER.info(String.format("Read %d blocks from disk.", size()));

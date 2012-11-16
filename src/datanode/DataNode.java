@@ -31,24 +31,25 @@ public class DataNode implements RemoteDataNode {
 
 	public final int id;
 	public final BlockManager blocks;
+	public final DataNodeNameNodeProtocol nameNode;
 	private HeartBeatSender heartBeatSender;
-	private DataNodeNameNodeProtocol nameNode;
 
 	public DataNode(int id, String baseDir, DataNodeNameNodeProtocol nameNode,
 			InetSocketAddress nameNodeHeartBeatSocketAddress) {
 		this.id = id;
 		this.nameNode = nameNode;
 		this.pathBaseDir = baseDir;
-		this.blocks = new BlockManager(baseDir + BASE_BLOCK_PATH);
+		this.blocks = new BlockManager(baseDir + BASE_BLOCK_PATH, this);
+		LOGGER.info("Operating on directory '"+pathBaseDir+"'");
 
 		try {
 			heartBeatSender = new HeartBeatSender(
 					nameNodeHeartBeatSocketAddress,
 					Constants.DEFAULT_HEARTBEAT_INTERVAL_MS, id);
 		} catch (SocketException e) {
-			System.err.printf("Could not create HeartBeat sender: %s\n",
-					e.getLocalizedMessage());
-			System.exit(1);
+			String errorMessage = "Could not create HeartBeat sender"; 
+			LOGGER.error(errorMessage, e);
+			throw new RuntimeException(errorMessage, e);
 		}
 		
 		blocks.readFromDisk();
@@ -56,8 +57,9 @@ public class DataNode implements RemoteDataNode {
 
 	public void start() {
 		new Thread(heartBeatSender).start();
-		LOGGER.debug("Sending HeartBeats every "
+		LOGGER.info("Sending HeartBeats every "
 				+ heartBeatSender.getInterval() + " ms");
+		LOGGER.info("DataNode Ready\n");
 	}
 	
 	
@@ -72,9 +74,8 @@ public class DataNode implements RemoteDataNode {
 			LOGGER.warn(block+" already exists");
 			throw new BlockAlreadyExistsException();
 		}
-		block = blocks.newBlock(blockID);
-		LOGGER.debug(block+" created");
-		return block.getStub();
+		else
+			return newBlock(blockID).getStub();
 	}
 
 	@Override
@@ -83,20 +84,28 @@ public class DataNode implements RemoteDataNode {
 		Block block = blocks.get(blockID);
 		if (block == null)
 			throw new BlockNotFoundException();
-		
-		LOGGER.debug(block+" served");
-		return block.getStub();
+		else {
+			LOGGER.debug(block+" served");
+			return block.getStub();
+		}
 	}
 
 	@Override
 	public RemoteBlock getOrCreateBlock(long blockID) throws RemoteException {
 		Block block = blocks.get(blockID);
 		if (block == null)
-			block = blocks.newBlock(blockID);
+			block = newBlock(blockID);
 		else
 			LOGGER.debug(block+" served");
 			
 		return block.getStub();
+	}
+	
+	private Block newBlock(long blockID) throws RemoteException {
+		Block block = blocks.newBlock(blockID);
+		nameNode.blockReceived(id, block.getInfo());
+		LOGGER.debug(block+" created");
+		return block;
 	}
 	
 	
@@ -144,8 +153,7 @@ public class DataNode implements RemoteDataNode {
 			RMIHelper.rebindAndHookUnbind("DataNode" + dataNode.id,
 					dataNode.getStub());
 		} catch (RemoteException | MalformedURLException e) {
-			e.printStackTrace();
-			System.exit(1);
+			throw new RuntimeException("error rebinding stub", e);
 		}
 
 		dataNode.start();
@@ -159,10 +167,9 @@ public class DataNode implements RemoteDataNode {
 			idFile.createNewFile();
 			writer.write("" + id);
 		} catch (IOException e) {
-			System.err.printf("could not save ID to file '%s'\n",
-					idFile.getAbsolutePath());
-			e.printStackTrace();
-			System.exit(1);
+			String errorMessage = "could not save ID to file "+idFile.getAbsolutePath();
+			LOGGER.error(errorMessage);
+			throw new RuntimeException(errorMessage, e); 
 		}
 	}
 

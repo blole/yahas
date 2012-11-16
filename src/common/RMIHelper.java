@@ -33,25 +33,6 @@ public class RMIHelper {
 		}
 	}
 
-	// public static Registry getRegistry(int port) {
-	// System.out.printf("Registry for port %d: ", port);
-	// try {
-	// Registry reg = LocateRegistry.createRegistry(port);
-	// System.out.println("Started");
-	// return reg;
-	// } catch (RemoteException e) {
-	// System.out.println("Already started");
-	// try {
-	// return LocateRegistry.getRegistry();
-	// } catch (RemoteException e1) {
-	// System.err.println("WTF?");
-	// e1.printStackTrace();
-	// System.exit(1);
-	// return null;
-	// }
-	// }
-	// }
-
 	public static void maybeStartSecurityManager() {
 		if (useSecurityManager) {
 			if (System.getSecurityManager() == null) {
@@ -124,8 +105,7 @@ public class RMIHelper {
 				}
 
 			} catch (MalformedURLException e) {
-				e.printStackTrace();
-				System.exit(1);
+				throw new RuntimeException("error connecting to remote "+name+", malformed URL");
 			}
 		}
 	}

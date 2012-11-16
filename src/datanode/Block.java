@@ -13,27 +13,24 @@ import java.util.List;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.log4j.Logger;
 
+import common.BlockInfo;
 import common.RMIHelper;
 import common.ReplicationHelper;
 import common.protocols.DataNodeDataNodeProtocol;
 import common.protocols.RemoteBlock;
 
 public class Block implements RemoteBlock {
-	
 	private static final Logger LOGGER = Logger.getLogger(
 			Block.class.getCanonicalName());
 	
-	
-	
-	public final long blockID;
+	private final long blockID;
 	private File file;
 	private File hashFile;
-
-	private BlockManager manager;
-
-
-
+	
+	private DataNode dataNode;
 	private RemoteBlock stub;
+
+	
 	
 	
 	
@@ -43,13 +40,14 @@ public class Block implements RemoteBlock {
 	 * If a block with that ID already existed in the directory, that one is deleted!
 	 * 
 	 * @param blockID
+	 * @param nameNode 
 	 * @throws IOException 
 	 */
-	public Block(long blockID, BlockManager blockManager) throws RemoteException {
+	public Block(long blockID, DataNode dataNode) throws RemoteException {
 		this(blockID,
-				new File(blockManager.blockDir, ""+blockID),
-				new File(blockManager.blockDir, blockID+".hash"),
-				blockManager);
+				new File(dataNode.blocks.blockDir, ""+blockID),
+				new File(dataNode.blocks.blockDir, blockID+".hash"),
+				dataNode);
 		
 		if (file.delete()) //the file already existed
 			LOGGER.debug(String.format("Deleting block %d to make way for " +
@@ -65,11 +63,21 @@ public class Block implements RemoteBlock {
 		}
 	}
 	
-	public Block(long blockID, File file, File hashFile, BlockManager manager) {
+	/**
+	 * Only use if you already have checked that both file and hashFile already
+	 * exist.
+	 * 
+	 * @param blockID
+	 * @param file
+	 * @param hashFile
+	 * @param manager
+	 * @param nameNode 
+	 */
+	public Block(long blockID, File file, File hashFile, DataNode dataNode) {
 		this.blockID = blockID;
 		this.file = file;
 		this.hashFile = hashFile;
-		this.manager = manager;
+		this.dataNode = dataNode;
 	}
 	
 	
@@ -121,7 +129,12 @@ public class Block implements RemoteBlock {
 			LOGGER.error(errormessage, e);
 			throw new RemoteException(errormessage, e);
 		}
+		dataNode.nameNode.blockReceived(dataNode.id, getInfo());
 	}
+	
+	
+	
+	
 	
 	private void writeHash(byte[] hash) {
 		try (OutputStream writer = new FileOutputStream(hashFile)){
@@ -138,32 +151,25 @@ public class Block implements RemoteBlock {
 			reader.read(byteArray);
 			LOGGER.debug(this+" read hash");
 		} catch (IOException e) {
-			LOGGER.error(this+" error writing hash", e);
+			LOGGER.error(this+" error reading hash", e);
 		}
 		return byteArray;
 	}
 	
 	
-
-	@Override
+	
+	
+	
 	public long getID() {
 		return blockID;
 	}
 
 	@Override
-	public int getPreferredBlockSize() {
-		// TODO Auto-generated method stub
-		return 65536;
-	}
-
-	@Override
-	public int getRemainingSize() {
-		return getPreferredBlockSize() - (int)file.length();
-	}
-
-	@Override
 	public void delete() throws RemoteException {
-		manager.remove(this);
+		dataNode.blocks.remove(blockID);
+		file.delete();
+		hashFile.delete();
+		LOGGER.debug(this+" removed");
 	}
 
 	public RemoteBlock getStub() throws RemoteException {
@@ -174,6 +180,10 @@ public class Block implements RemoteBlock {
 
 	@Override
 	public String toString() {
-		return "[Block "+blockID+"]";
+		return "[Block "+getID()+"]";
+	}
+
+	public BlockInfo getInfo() {
+		return new BlockInfo(blockID, (int)file.length());
 	}
 }

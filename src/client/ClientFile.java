@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NotDirectoryException;
 import java.rmi.RemoteException;
 import java.util.List;
@@ -14,6 +13,7 @@ import namenode.NameNodeFile;
 import common.exceptions.AllDataNodesAreDeadException;
 import common.exceptions.BlockNotFoundException;
 import common.exceptions.FileAlreadyOpenException;
+import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.protocols.RemoteDataNode;
 import common.protocols.RemoteFile;
@@ -37,7 +37,7 @@ public class ClientFile implements Serializable, Closeable {
 	
 	public byte[] read() throws RemoteException, FileAlreadyOpenException {
 		if (!iOpenedIt)
-			throw new FileAlreadyOpenException(); //TODO better exception
+			throw new FileAlreadyOpenException(getPath());
 		
 		List<ClientBlock> allBlocks = remoteFile.getBlocks();
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -65,7 +65,7 @@ public class ClientFile implements Serializable, Closeable {
 	public void write(byte[] data) throws RemoteException,
 					AllDataNodesAreDeadException, FileAlreadyOpenException {
 		if (!iOpenedIt)
-			throw new FileAlreadyOpenException();
+			throw new FileAlreadyOpenException(getPath());
 		
 		for (int alreadyWrittenBytes=0; alreadyWrittenBytes<data.length; ) {
 			ClientBlock block = remoteFile.getWritingBlock();
@@ -84,7 +84,7 @@ public class ClientFile implements Serializable, Closeable {
 		else if (!remoteFile.isOpen())
 			open();
 		else
-			throw new FileAlreadyOpenException();
+			throw new FileAlreadyOpenException(getPath());
 	}
 	
 	@Override
@@ -95,7 +95,7 @@ public class ClientFile implements Serializable, Closeable {
 		}
 	}
 	
-	public void move(String to) throws NotDirectoryException, FileAlreadyExistsException, RemoteException, NoSuchFileOrDirectoryException {
+	public void move(String to) throws NotDirectoryException, FileOrDirectoryAlreadyExistsException, RemoteException, NoSuchFileOrDirectoryException {
 		remoteFile.move(to);
 	}
 	
@@ -103,7 +103,7 @@ public class ClientFile implements Serializable, Closeable {
 		if (iOpenedIt || !remoteFile.isOpen())
 			remoteFile.delete();
 		else
-			throw new FileAlreadyOpenException();
+			throw new FileAlreadyOpenException(getPath());
 	}
 	
 	public String getName() {

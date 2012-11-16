@@ -1,6 +1,5 @@
 package client;
 
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NotDirectoryException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
@@ -11,6 +10,7 @@ import common.RMIHelper;
 import common.exceptions.AllDataNodesAreDeadException;
 import common.exceptions.BadFileName;
 import common.exceptions.FileAlreadyOpenException;
+import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.exceptions.NotFileException;
 import common.protocols.ClientNameNodeProtocol;
@@ -40,10 +40,9 @@ public class Client {
 			System.out.printf("\nread: '%s'\n", new String(file.read()));
 		} catch (RemoteException e) {
 			e.printStackTrace();
+		} catch (FileOrDirectoryAlreadyExistsException e) {
+			System.err.println("File already exists: "+e.getMessage());
 		} catch (AllDataNodesAreDeadException e) {
-			e.printStackTrace();
-		} catch (FileAlreadyExistsException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NotDirectoryException e) {
 			// TODO Auto-generated catch block
@@ -76,7 +75,7 @@ public class Client {
 		try {
 			nameNode.createDir(pathName, true);
 		} catch (RemoteException | NotDirectoryException |
-				FileAlreadyExistsException | NoSuchFileOrDirectoryException e) {
+				FileOrDirectoryAlreadyExistsException | NoSuchFileOrDirectoryException e) {
 			e.printStackTrace();
 		}
 	}

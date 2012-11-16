@@ -23,9 +23,8 @@ public class HeartBeatReceiver implements Runnable {
 		try {
 			incomingHeartBeatSocket = new DatagramSocket(heartBeatPort);
 		} catch (SocketException e) {
-			String errorMessage = String.format("Could not bind to HeartBeat port %d: %s\n",
-					heartBeatPort, e.getLocalizedMessage());
-			throw new RuntimeException(errorMessage);
+			String errorMessage = String.format("Error binding to HeartBeat port %d", heartBeatPort);
+			throw new RuntimeException(errorMessage, e);
 		}
 		
 		this.nameNode = reportBackTo;

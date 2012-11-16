@@ -57,7 +57,7 @@ public class Block implements RemoteBlock {
 			file.createNewFile();
 			hashFile.createNewFile();
 		} catch (IOException e) {
-			String errormessage = "Error creating new block "+blockID;
+			String errormessage = "Error creating files for new block "+blockID;
 			LOGGER.error(errormessage, e);
 			throw new RemoteException(errormessage, e);
 		}
@@ -94,7 +94,7 @@ public class Block implements RemoteBlock {
 			LOGGER.debug(this+" read");
 			return byteArray;
 		} catch (IOException e) {
-			String errorMessage = this+" error while reading "+file.getAbsolutePath();
+			String errorMessage = this+" error while reading '"+file.getAbsolutePath()+"'";
 			LOGGER.error(errorMessage, e);
 			throw new RemoteException(errorMessage, e);
 		}

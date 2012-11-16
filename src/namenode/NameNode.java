@@ -2,7 +2,6 @@ package namenode;
 
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NotDirectoryException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -19,6 +18,7 @@ import common.BlockInfo;
 import common.Constants;
 import common.RMIHelper;
 import common.exceptions.BadFileName;
+import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.exceptions.NotFileException;
 import common.protocols.RemoteDataNode;
@@ -64,11 +64,11 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	
 	@Override
-	public ClientFile createFile(String path, byte replicationFactor, int blockSize) throws FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName {
+	public ClientFile createFile(String path, byte replicationFactor, int blockSize) throws FileOrDirectoryAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName {
 		Pair<NameNodeDir, String> pair = root.getLastDir(path, false);
 		
 		if (pair.getValue0() == null)
-			throw new BadFileName();
+			throw new BadFileName("");
 		else {
 			NameNodeDir dir = pair.getValue0();
 			String fileName = pair.getValue1();
@@ -85,7 +85,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	}
 
 	@Override
-	public RemoteDir createDir(String path, boolean createParentsAsNeeded) throws NotDirectoryException, FileAlreadyExistsException, NoSuchFileOrDirectoryException {
+	public RemoteDir createDir(String path, boolean createParentsAsNeeded) throws NotDirectoryException, FileOrDirectoryAlreadyExistsException, NoSuchFileOrDirectoryException {
 		NameNodeDir dir = root.createDir(path, createParentsAsNeeded);
 		LOGGER.debug(dir+" created");
 		return dir.getStub();
@@ -192,7 +192,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 			RemoteNameNode stub = (RemoteNameNode) RMIHelper.getStub(nameNode);
 			RMIHelper.rebindAndHookUnbind("NameNode", stub);
 		} catch (RemoteException | MalformedURLException e) {
-			String errorMessage = "error setting up server";
+			String errorMessage = "Error setting up server";
 			LOGGER.error(errorMessage, e);
 			throw new RuntimeException(errorMessage, e);
 		}

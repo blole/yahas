@@ -1,6 +1,5 @@
 package common.protocols;
 
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NotDirectoryException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
@@ -8,6 +7,7 @@ import java.rmi.RemoteException;
 import client.ClientFile;
 
 import common.exceptions.BadFileName;
+import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.exceptions.NotFileException;
 
@@ -29,13 +29,13 @@ public interface ClientNameNodeProtocol extends Remote {
 	 * 	Replication Factor for the file
 	 * @return
 	 * @throws RemoteException
-	 * @throws FileAlreadyExistsException 
 	 * @throws NoSuchFileOrDirectoryException 
 	 * @throws NotDirectoryException 
 	 * @throws BadFileName 
+	 * @throws FileOrDirectoryAlreadyExistsException 
 	 * @throws RemoteDirNotFoundException
 	 */
-	ClientFile createFile(String name, byte replicationFactor, int blockSize) throws RemoteException, FileAlreadyExistsException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName;
+	ClientFile createFile(String name, byte replicationFactor, int blockSize) throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException, BadFileName, FileOrDirectoryAlreadyExistsException;
 
 	/**
 	 * Get the FileHandle
@@ -61,12 +61,12 @@ public interface ClientNameNodeProtocol extends Remote {
 	 *  createParentsAsNeeded is set to true.
 	 * @throws RemoteException
 	 * @throws RemoteDirNotFoundException 
-	 * @throws FileAlreadyExistsException 
 	 * @throws NotDirectoryException 
 	 * @throws NoSuchFileOrDirectoryException 
+	 * @throws FileOrDirectoryAlreadyExistsException 
 	 */
 	RemoteDir createDir(String path, boolean createParentsAsNeeded)
-			throws RemoteException, NotDirectoryException, FileAlreadyExistsException, NoSuchFileOrDirectoryException;
+			throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException, FileOrDirectoryAlreadyExistsException;
 	
 	/**
 	 * Gets and Existing Dir.

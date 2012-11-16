@@ -47,7 +47,7 @@ public class DataNode implements RemoteDataNode {
 					nameNodeHeartBeatSocketAddress,
 					Constants.DEFAULT_HEARTBEAT_INTERVAL_MS, id);
 		} catch (SocketException e) {
-			String errorMessage = "Could not create HeartBeat sender"; 
+			String errorMessage = "Error creating HeartBeat sender"; 
 			LOGGER.error(errorMessage, e);
 			throw new RuntimeException(errorMessage, e);
 		}
@@ -72,7 +72,7 @@ public class DataNode implements RemoteDataNode {
 		Block block = blocks.get(blockID);
 		if (block != null) {
 			LOGGER.warn(block+" already exists");
-			throw new BlockAlreadyExistsException();
+			throw new BlockAlreadyExistsException(blockID);
 		}
 		else
 			return newBlock(blockID).getStub();
@@ -83,7 +83,7 @@ public class DataNode implements RemoteDataNode {
 			BlockNotFoundException {
 		Block block = blocks.get(blockID);
 		if (block == null)
-			throw new BlockNotFoundException();
+			throw new BlockNotFoundException(blockID);
 		else {
 			LOGGER.debug(block+" served");
 			return block.getStub();
@@ -153,7 +153,7 @@ public class DataNode implements RemoteDataNode {
 			RMIHelper.rebindAndHookUnbind("DataNode" + dataNode.id,
 					dataNode.getStub());
 		} catch (RemoteException | MalformedURLException e) {
-			throw new RuntimeException("error rebinding stub", e);
+			throw new RuntimeException("Error rebinding stub", e);
 		}
 
 		dataNode.start();
@@ -167,7 +167,7 @@ public class DataNode implements RemoteDataNode {
 			idFile.createNewFile();
 			writer.write("" + id);
 		} catch (IOException e) {
-			String errorMessage = "could not save ID to file "+idFile.getAbsolutePath();
+			String errorMessage = "Error saving ID to file '"+idFile.getAbsolutePath()+"'";
 			LOGGER.error(errorMessage);
 			throw new RuntimeException(errorMessage, e); 
 		}
@@ -182,10 +182,10 @@ public class DataNode implements RemoteDataNode {
 				System.out.printf("Read ID from file: %d\n", id);
 				return id;
 			} catch (IOException e) {
-				throw new RuntimeException(String.format("Could not read saved ID from file '%s'",
+				throw new RuntimeException(String.format("Error reading saved ID from file '%s'",
 						idFile.getAbsolutePath()), e);
 			} catch (NumberFormatException e) {
-				throw new RuntimeException(String.format("The file '%s' did not contain a valid ID.",
+				throw new RuntimeException(String.format("Error, the file '%s' did not contain a valid ID.",
 						idFile.getAbsolutePath()));
 			}
 		}
@@ -199,7 +199,7 @@ public class DataNode implements RemoteDataNode {
 			System.out.printf("registered with the NameNode for the new ID: %d\n", id);
 			return id;
 		} catch (RemoteException e) {
-			throw new RuntimeException("error while registering with the NameNode", e);
+			throw new RuntimeException("Error while registering with the NameNode", e);
 		}
 	}
 }

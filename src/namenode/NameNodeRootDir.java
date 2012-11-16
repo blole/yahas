@@ -4,7 +4,6 @@ import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.NotDirectoryException;
 
 public class NameNodeRootDir extends NameNodeDir {
-
 	public NameNodeRootDir() {
 		super("/");
 		this.parent = this;
@@ -12,12 +11,12 @@ public class NameNodeRootDir extends NameNodeDir {
 	
 	@Override
 	public void move(String pathTo) throws NotDirectoryException {
-		throw new NotDirectoryException("/");
+		throw new NotDirectoryException(getPath());
 	}
 	
 	@Override
 	public void delete(boolean force) throws DirectoryNotEmptyException {
-		throw new DirectoryNotEmptyException("/");
+		throw new DirectoryNotEmptyException(getPath());
 	}
 	
 	

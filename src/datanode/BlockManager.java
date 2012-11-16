@@ -24,7 +24,7 @@ public class BlockManager extends HashMap<Long, Block> {
 		if (!blockDir.exists())
 			blockDir.mkdirs();
 		else if (!blockDir.isDirectory()) {
-			String errorMessage = String.format("'%s' is not a directory.", blockDir.getAbsolutePath());
+			String errorMessage = String.format("Block dir '%s' is not a directory.", blockDir.getAbsolutePath());
 			LOGGER.error(errorMessage);
 			throw new RuntimeException(errorMessage);
 		}

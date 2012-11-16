@@ -69,7 +69,7 @@ public class NameNodeFile extends NameNodeFileOrDir implements RemoteFile {
 	@Override
 	public void open() throws FileAlreadyOpenException {
 		if (isOpen())
-			throw new FileAlreadyOpenException();
+			throw new FileAlreadyOpenException(getPath());
 		else {
 			LOGGER.debug(toString()+" opened");
 			renewLease();

@@ -14,6 +14,7 @@ import org.javatuples.Pair;
 import client.ClientFile;
 
 import common.RMIHelper;
+import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.exceptions.NotFileException;
 import common.protocols.RemoteDir;
@@ -59,19 +60,20 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 				break;
 			default:
 				if (dir.getType() != Type.Directory)
-					throw new NotDirectoryException(dirName);
-				dir = ((NameNodeDir)dir).contents.get(dirName);
-				if (dir == null) {
+					throw new NotDirectoryException(dir.getPath());
+				NameNodeFileOrDir child = ((NameNodeDir)dir).contents.get(dirName);
+				if (child == null) {
 					if (createParentsAsNeeded) {
 						try {
-							dir = createDirHere(dirName);
-						} catch (FileAlreadyExistsException e) {
+							child = ((NameNodeDir)dir).createDirHere(dirName);
+						} catch (FileOrDirectoryAlreadyExistsException e) {
 							LOGGER.error("This should never happen. Concurrency issues?", e);
 						}
 					}
 					else
-						throw new NoSuchFileOrDirectoryException();
+						throw new NoSuchFileOrDirectoryException(((NameNodeDir)dir).getPath()+dirName);
 				}
+				dir = child;
 				break;
 			}
 		}
@@ -83,7 +85,7 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 		NameNodeFileOrDir file = get(fullPath, false);
 		if (file.getType() != Type.File) {
 			LOGGER.warn("Tried to serve "+file+" as a file");
-			throw new NotFileException();
+			throw new NotFileException(file.getPath());
 		}
 		else {
 			LOGGER.debug(file+ " served");
@@ -94,7 +96,7 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 	public NameNodeDir getDir(String fullPath, boolean createParentsAsNeeded) throws NotDirectoryException, NoSuchFileOrDirectoryException {
 		NameNodeFileOrDir dir = get(fullPath, createParentsAsNeeded);
 		if (dir.getType() != Type.Directory)
-			throw new NotDirectoryException(dir.getName());
+			throw new NotDirectoryException(dir.getPath());
 		else
 			return (NameNodeDir) dir;
 	}
@@ -154,7 +156,7 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 	 * @throws NoSuchFileOrDirectoryException 
 	 */
 	public NameNodeDir createDir(String path, boolean createParentsAsNeeded)
-			throws NotDirectoryException, FileAlreadyExistsException, NoSuchFileOrDirectoryException {
+			throws NotDirectoryException, FileOrDirectoryAlreadyExistsException, NoSuchFileOrDirectoryException {
 		Pair<NameNodeDir, String> pair = getLastDir(path, createParentsAsNeeded);
 		
 		if (pair.getValue1() == null)
@@ -163,15 +165,16 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 			return pair.getValue0().createDirHere(pair.getValue1());
 	}
 	
-	private NameNodeDir createDirHere(String subDirName) throws FileAlreadyExistsException {
+	private NameNodeDir createDirHere(String subDirName) throws FileOrDirectoryAlreadyExistsException {
 		NameNodeDir subDir = new NameNodeDir(subDirName);
 		moveHere(subDir, subDirName);
 		return subDir;
 	}
 	
-	public void moveHere(NameNodeFileOrDir node, String newName) throws FileAlreadyExistsException {
-		if (contents.containsKey(newName))
-			throw new FileAlreadyExistsException(newName);
+	public void moveHere(NameNodeFileOrDir node, String newName) throws FileOrDirectoryAlreadyExistsException {
+		NameNodeFileOrDir alreadyExisting = contents.get(newName);
+		if (alreadyExisting != null)
+			throw new FileOrDirectoryAlreadyExistsException(alreadyExisting.getPath());
 		if (node.parent != null)
 			node.parent.contents.remove(node.getName());
 		node.parent = this;

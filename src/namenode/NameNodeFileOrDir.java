@@ -1,12 +1,12 @@
 package namenode;
 
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NotDirectoryException;
 import java.rmi.Remote;
 
 import org.apache.log4j.Logger;
 import org.javatuples.Pair;
 
+import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 
 abstract class NameNodeFileOrDir implements Remote  {
@@ -29,7 +29,7 @@ abstract class NameNodeFileOrDir implements Remote  {
 	
 	
 	
-	protected void rename(String newName) throws FileAlreadyExistsException {
+	protected void rename(String newName) throws FileOrDirectoryAlreadyExistsException {
 		if (parent != null) {
 			parent.moveHere(this, newName);
 		}
@@ -46,7 +46,7 @@ abstract class NameNodeFileOrDir implements Remote  {
 	}
 	
 	public void move(String path) throws NotDirectoryException,
-					NoSuchFileOrDirectoryException, FileAlreadyExistsException {
+					NoSuchFileOrDirectoryException, FileOrDirectoryAlreadyExistsException {
 		Pair<NameNodeDir, String> pair = parent.getLastDir(path, false);
 		
 		if (pair.getValue1() != null)

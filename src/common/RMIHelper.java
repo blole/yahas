@@ -105,7 +105,7 @@ public class RMIHelper {
 				}
 
 			} catch (MalformedURLException e) {
-				throw new RuntimeException("error connecting to remote "+name+", malformed URL");
+				throw new RuntimeException("Error connecting to remote '"+name+"', malformed URL");
 			}
 		}
 	}

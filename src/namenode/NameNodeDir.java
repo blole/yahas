@@ -18,6 +18,7 @@ import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.exceptions.NotFileException;
 import common.protocols.RemoteDir;
+import common.protocols.RemoteFileOrDir;
 
 public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 	private static final Logger LOGGER = Logger.getLogger(
@@ -43,6 +44,10 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 	
 	
 	@Override
+	public RemoteFileOrDir getRemote(String path, boolean createParentsAsNeeded) throws NotDirectoryException, NoSuchFileOrDirectoryException {
+		return get(path, createParentsAsNeeded).getStub();
+	}
+	
 	public NameNodeFileOrDir get(String path, boolean createParentsAsNeeded) throws NoSuchFileOrDirectoryException, NotDirectoryException {
 		NameNodeFileOrDir dir;
 		if (path.startsWith("/"))
@@ -81,6 +86,10 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 	}
 	
 	@Override
+	public ClientFile getRemoteFile(String fullPath) throws NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException {
+		return getFile(fullPath).getYAHASFile();
+	}
+	
 	public NameNodeFile getFile(String fullPath) throws NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException {
 		NameNodeFileOrDir file = get(fullPath, false);
 		if (file.getType() != Type.File) {
@@ -93,12 +102,17 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 		}
 	}
 	
-	public NameNodeDir getDir(String fullPath, boolean createParentsAsNeeded) throws NotDirectoryException, NoSuchFileOrDirectoryException {
+	public NameNodeDir getLocalDir(String fullPath, boolean createParentsAsNeeded) throws NotDirectoryException, NoSuchFileOrDirectoryException {
 		NameNodeFileOrDir dir = get(fullPath, createParentsAsNeeded);
 		if (dir.getType() != Type.Directory)
 			throw new NotDirectoryException(dir.getPath());
 		else
 			return (NameNodeDir) dir;
+	}
+	
+	@Override
+	public RemoteDir getDir(String fullPath) throws NotDirectoryException, NoSuchFileOrDirectoryException {
+		return getLocalDir(fullPath, false).stub;
 	}
 	
 	/**
@@ -128,7 +142,7 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 		else {
 			String basePath = path.substring(0, lastSlashIndex);
 			existingDirNameOrName = path.substring(lastSlashIndex+1);
-			safeDir = getDir(basePath, createParentsAsNeeded);
+			safeDir = getLocalDir(basePath, createParentsAsNeeded);
 		}
 		
 		try {
@@ -187,10 +201,8 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 	
 	@Override
 	public void delete(boolean force) throws DirectoryNotEmptyException {
-		if (parent != null) {
-			if (force || contents.size() == 0)
-				super.delete();
-		}
+		if (force || contents.size() == 0)
+			super.delete();
 		else
 			throw new DirectoryNotEmptyException(getPath());
 	}
@@ -246,6 +258,7 @@ public class NameNodeDir extends NameNodeFileOrDir implements RemoteDir {
 		return super.getPath()+"/";
 	}
 
+	@Override
 	public RemoteDir getStub() {
 		return stub;
 	}

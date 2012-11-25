@@ -1,7 +1,6 @@
 package namenode;
 
 import java.nio.file.NotDirectoryException;
-import java.rmi.Remote;
 
 import org.apache.log4j.Logger;
 import org.javatuples.Pair;
@@ -10,9 +9,7 @@ import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.protocols.RemoteFileOrDir;
 
-import common.protocols.RemoteFileOrDir.Type;
-
-public abstract class NameNodeFileOrDir implements Remote, RemoteFileOrDir  {
+public abstract class NameNodeFileOrDir implements RemoteFileOrDir {
 	private static final Logger LOGGER = Logger.getLogger(
 			NameNodeFileOrDir.class.getCanonicalName());
 	
@@ -39,9 +36,9 @@ public abstract class NameNodeFileOrDir implements Remote, RemoteFileOrDir  {
 	
 	public void delete() {
 		if (parent != null) {
+			LOGGER.debug(this+" deleted");
 			parent.remove(this);
 			parent = null;
-			LOGGER.debug(toString()+" deleted");
 		}
 	}
 	
@@ -67,6 +64,7 @@ public abstract class NameNodeFileOrDir implements Remote, RemoteFileOrDir  {
 		return parent.getPath()+getName();
 	}
 	
-	public abstract Type getType();
-	
+	abstract public Type getType();
+
+	abstract public RemoteFileOrDir getStub();
 }

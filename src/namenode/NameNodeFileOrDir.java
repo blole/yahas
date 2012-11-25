@@ -8,15 +8,15 @@ import org.javatuples.Pair;
 
 import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
+import common.protocols.RemoteFileOrDir;
 
-abstract class NameNodeFileOrDir implements Remote  {
+import common.protocols.RemoteFileOrDir.Type;
+
+public abstract class NameNodeFileOrDir implements Remote, RemoteFileOrDir  {
 	private static final Logger LOGGER = Logger.getLogger(
 			NameNodeFileOrDir.class.getCanonicalName());
 	
-	public enum Type {
-		File,
-		Directory,
-	};
+
 	
 	protected NameNodeDir parent;
 	protected String name;
@@ -68,4 +68,5 @@ abstract class NameNodeFileOrDir implements Remote  {
 	}
 	
 	public abstract Type getType();
+	
 }

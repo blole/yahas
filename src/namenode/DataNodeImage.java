@@ -44,7 +44,7 @@ public class DataNodeImage {
 	public void disconnected() {
 		LOGGER.info(this+" disconnected");
 		for (BlockInfo block : blocks.values())
-			nameNode.getBlock(block.blockID).dataNodeLostThisBlock(this);
+			blockLost(nameNode.getBlock(block.blockID));
 	}
 	
 	
@@ -79,6 +79,13 @@ public class DataNodeImage {
 	public void blockReceived(BlockInfo blockInfo) {
 		blocks.put(blockInfo.blockID, blockInfo);
 		blockInfoReceived(blockInfo);
+	}
+	
+	public void blockLost(BlockImage block) {
+		if (block != null) {
+			blocks.remove(block.blockID);
+			block.dataNodeLostThisBlock(this);
+		}
 	}
 	
 	private void blockInfoReceived(BlockInfo blockInfo) {

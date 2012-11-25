@@ -1,8 +1,8 @@
 package namenode;
 
 import java.rmi.RemoteException;
+import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -10,6 +10,7 @@ import common.BlockInfo;
 import common.RMIHelper;
 import common.WriteInfo;
 import common.exceptions.BlockNotFoundException;
+import common.protocols.RemoteDataNode;
 import common.protocols.RemoteNameNodeBlock;
 
 public class BlockImage implements RemoteNameNodeBlock {
@@ -21,7 +22,7 @@ public class BlockImage implements RemoteNameNodeBlock {
 	public final int blockSize;
 	private int size;
 	public final RemoteNameNodeBlock stub;
-	public final List<DataNodeImage> dataNodes = new LinkedList<>();
+	public final HashSet<DataNodeImage> dataNodes = new HashSet<>();
 	
 	private NameNode nameNode;
 
@@ -47,13 +48,10 @@ public class BlockImage implements RemoteNameNodeBlock {
 	public WriteInfo initiateWrite(int amount) {
 		amount = Math.min(amount, blockSize-size);
 		scheduleIncreaseMaxSize(amount);
-		System.out.println(amount);
-		return new WriteInfo(amount, nameNode.getAppropriateDataNodes(replicationFactor));
+		return new WriteInfo(amount, nameNode.getAppropriateDataNodes(this, replicationFactor));
 	}
 	
 	private void scheduleIncreaseMaxSize(final int amount) {
-		//TODO: this is not written nicely, and it also causes problems if consecutive
-		//writes come too close together... in LinkedList.checkForComodification()
 		if (amount >= 0) {
 			new Thread() {
 				@Override
@@ -73,7 +71,7 @@ public class BlockImage implements RemoteNameNodeBlock {
 						}
 					}
 					if (bytesActuallyWritten) {
-						for (DataNodeImage dataNode : dataNodes) {
+						for (DataNodeImage dataNode : new LinkedList<>(dataNodes)) {
 							BlockInfo oldBlockInfo = dataNode.getBlock(blockID);
 							if (oldBlockInfo != null)
 								dataNodeGotThisBlock(dataNode, oldBlockInfo);
@@ -97,6 +95,49 @@ public class BlockImage implements RemoteNameNodeBlock {
 		}
 		else
 			dataNodes.add(dataNode);
+	}
+
+	public void replicateAndDeleteAsNeccessary() {
+		int overflow = getOverflow();
+		if (overflow > 0) {
+			LOGGER.info(this+" has "+overflow+" replicas in excess, deleting some");
+			for (DataNodeImage dataNode : new LinkedList<>(dataNodes)) {
+				dataNode.blockLost(this);
+				try {
+					dataNode.getRemoteStub().getBlock(blockID).delete();
+				} catch (RemoteException | BlockNotFoundException e) {
+					LOGGER.error(this+" failed to delete from "+dataNode);
+				}
+				dataNodes.remove(dataNode);
+				if (getOverflow() <= 0)
+					break;
+			}
+		}
+		else if (overflow < 0) {
+			if (dataNodes.size() == 0)
+				LOGGER.info(this+" no connected DataNodes have this block");
+			else {
+				LinkedList<RemoteDataNode> newDataNodes = nameNode.getAppropriateDataNodes(this, -overflow);
+				if (newDataNodes.size() == 0) {
+					LOGGER.info(this+" under replicated by "+-overflow+", but no new DataNodes found");
+				}
+				else {
+					LOGGER.info(this+" under replicated by "+-overflow+", ordering "+newDataNodes.size()+
+							" new replicas");
+					for (DataNodeImage dataNode : dataNodes) {
+						try {
+							dataNode.getRemoteStub().getBlock(blockID).copyTo(newDataNodes);
+							break;
+						} catch (RemoteException | BlockNotFoundException e) {
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	private int getOverflow() {
+		return dataNodes.size() - replicationFactor;
 	}
 
 	public void dataNodeLostThisBlock(DataNodeImage dataNode) {

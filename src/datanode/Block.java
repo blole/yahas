@@ -110,10 +110,23 @@ public class Block implements RemoteBlock {
 			final List<DataNodeDataNodeProtocol> dataNodes) throws RemoteException {
 		writeToFile(data);
 		
+		LOGGER.debug(this+" replicating to "+dataNodes.size()+" DataNodes");
 		new Thread() {
 			@Override
 			public void run() {
-				LOGGER.debug(this+" replicating to "+dataNodes.size()+" DataNodes");
+				ReplicationHelper.write(data, blockID, dataNodes);
+			};
+		}.start();
+	}
+
+	@Override
+	public void copyTo(final List<? extends DataNodeDataNodeProtocol> dataNodes) throws RemoteException {
+		final byte data[] = read();
+		
+		new Thread() {
+			@Override
+			public void run() {
+				LOGGER.debug(this+" copying to "+dataNodes.size()+" DataNodes");
 				ReplicationHelper.write(data, blockID, dataNodes);
 			};
 		}.start();

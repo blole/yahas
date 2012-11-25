@@ -50,4 +50,6 @@ public interface RemoteBlock extends Remote {
 	 * @throws RemoteException
 	 */
 	void delete() throws RemoteException;
+
+	void copyTo(List<? extends DataNodeDataNodeProtocol> dataNodes) throws RemoteException;
 }

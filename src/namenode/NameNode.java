@@ -108,13 +108,15 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		return dataNodeIdCounter++;
 	}
 
-	public LinkedList<RemoteDataNode> getAppropriateDataNodes(int replicationFactor) {
+	public LinkedList<RemoteDataNode> getAppropriateDataNodes(BlockImage block, int replicationFactor) {
 		// TODO return APPROPRIATE DataNodes, not replicationFactor many
 		LinkedList<RemoteDataNode> list = new LinkedList<>();
 		for (DataNodeImage dataNode : connectedDataNodes.values()) {
-			list.add(dataNode.getRemoteStub());
-			if (list.size() >= replicationFactor)
-				break;
+			if (!block.dataNodes.contains(dataNode)) {
+				list.add(dataNode.getRemoteStub());
+				if (list.size() >= replicationFactor)
+					break;
+			}
 		}
 		return list;
 	}
@@ -138,12 +140,14 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		
 		connectedDataNodes.put(dataNode.id, dataNode);
 		dataNode.connected();
+		checkBlockStatuses();
 	}
 	
 	public void dataNodeDisconnected(int dataNodeID) {
 		DataNodeImage dataNode = connectedDataNodes.remove(dataNodeID);
 		if (dataNode != null)
 			dataNode.disconnected();
+		checkBlockStatuses();
 	}
 	
 	@Override
@@ -158,6 +162,11 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 	
 	public BlockImage getBlock(long blockID) {
 		return allBlocks.get(blockID);
+	}
+	
+	private void checkBlockStatuses() {
+		for (BlockImage block : allBlocks.values())
+			block.replicateAndDeleteAsNeccessary();
 	}
 	
 	

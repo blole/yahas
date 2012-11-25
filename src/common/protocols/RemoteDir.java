@@ -6,8 +6,10 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 import namenode.NameNodeFile;
+import namenode.NameNodeFileOrDir;
 import client.ClientFile;
 
+import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.exceptions.NotFileException;
 
@@ -41,4 +43,8 @@ public interface RemoteDir extends RemoteFileOrDir {
 	 * @throws RemoteException
 	 */
 	List<RemoteDir> getSubDirs() throws RemoteException;
+	
+	public NameNodeFileOrDir get(String path, boolean createParentsAsNeeded) throws NoSuchFileOrDirectoryException, NotDirectoryException; 
+	
+	
 }

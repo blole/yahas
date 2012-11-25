@@ -4,8 +4,6 @@ import java.nio.file.NotDirectoryException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-import namenode.NameNodeFileOrDir;
-
 import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 
@@ -36,8 +34,6 @@ public interface RemoteFileOrDir extends Remote {
 	 * @throws RemoteException
 	 */
 	Type getType() throws RemoteException;
-	
-	
 	
 	
 }

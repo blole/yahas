@@ -42,7 +42,7 @@ public class RMIHelper {
 				System.out.println("Security manager already exists.");
 			}
 		} else {
-			System.out.println("Not using a security manager.");
+			//System.out.println("Not using a security manager.");
 		}
 	}
 

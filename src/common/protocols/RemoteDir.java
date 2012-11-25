@@ -5,11 +5,8 @@ import java.nio.file.NotDirectoryException;
 import java.rmi.RemoteException;
 import java.util.List;
 
-import namenode.NameNodeFile;
-import namenode.NameNodeFileOrDir;
 import client.ClientFile;
 
-import common.exceptions.FileOrDirectoryAlreadyExistsException;
 import common.exceptions.NoSuchFileOrDirectoryException;
 import common.exceptions.NotFileException;
 
@@ -26,7 +23,7 @@ public interface RemoteDir extends RemoteFileOrDir {
 	 */
 	void delete(boolean force) throws RemoteException, DirectoryNotEmptyException;
 	
-	NameNodeFile getFile(String path) throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException;
+	ClientFile getRemoteFile(String path) throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException, NotFileException;
 
 	/**
 	 * To return the files under a particular directory
@@ -44,7 +41,10 @@ public interface RemoteDir extends RemoteFileOrDir {
 	 */
 	List<RemoteDir> getSubDirs() throws RemoteException;
 	
-	public NameNodeFileOrDir get(String path, boolean createParentsAsNeeded) throws NoSuchFileOrDirectoryException, NotDirectoryException; 
+	public RemoteFileOrDir getRemote(String path, boolean createParentsAsNeeded) throws RemoteException, NoSuchFileOrDirectoryException, NotDirectoryException;
+
+	public RemoteDir getDir(String fullPath)
+			throws RemoteException, NotDirectoryException, NoSuchFileOrDirectoryException; 
 	
 	
 }

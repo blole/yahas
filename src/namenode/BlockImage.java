@@ -21,17 +21,19 @@ public class BlockImage implements RemoteNameNodeBlock {
 	private int replicationFactor;
 	public final int blockSize;
 	private int size;
+	private int deleteIfBelowThisSize;
 	public final RemoteNameNodeBlock stub;
 	public final HashSet<DataNodeImage> dataNodes = new HashSet<>();
 	
 	private NameNode nameNode;
+
 
 	
 	public BlockImage(long id, int replicationFactor, int blockSize, NameNode nameNode) {
 		this.blockID = id;
 		this.replicationFactor = replicationFactor;
 		this.blockSize = blockSize;
-		this.size = 0;
+		this.size = this.deleteIfBelowThisSize = 0;
 		this.nameNode = nameNode;
 		
 		RemoteNameNodeBlock stub;
@@ -47,11 +49,12 @@ public class BlockImage implements RemoteNameNodeBlock {
 	@Override
 	public WriteInfo initiateWrite(int amount) {
 		amount = Math.min(amount, blockSize-size);
-		scheduleIncreaseMaxSize(amount);
-		return new WriteInfo(amount, nameNode.getAppropriateDataNodes(this, replicationFactor));
+		size += amount;
+		scheduleIncreaseDeleteIfBelowThisSize(amount);
+		return new WriteInfo(amount, nameNode.getAppropriateDataNodes(replicationFactor));
 	}
 	
-	private void scheduleIncreaseMaxSize(final int amount) {
+	private void scheduleIncreaseDeleteIfBelowThisSize(final int amount) {
 		if (amount >= 0) {
 			new Thread() {
 				@Override
@@ -60,12 +63,12 @@ public class BlockImage implements RemoteNameNodeBlock {
 						Thread.sleep(10_000);
 					} catch (InterruptedException e) {}
 					
-					size += amount;
+					deleteIfBelowThisSize += amount;
 					
 					boolean bytesActuallyWritten = false;
 					for (DataNodeImage dataNode : dataNodes) {
 						BlockInfo oldBlockInfo = dataNode.getBlock(blockID);
-						if (oldBlockInfo != null && oldBlockInfo.size() >= size) {
+						if (oldBlockInfo != null && oldBlockInfo.size() >= deleteIfBelowThisSize) {
 							bytesActuallyWritten = true;
 							break;
 						}
@@ -83,7 +86,7 @@ public class BlockImage implements RemoteNameNodeBlock {
 	}
 	
 	public void dataNodeGotThisBlock(DataNodeImage dataNode, BlockInfo blockInfo) {
-		if (/*nameNode.doneStarting() && */blockInfo.size() < size) {
+		if (/*nameNode.doneStarting() && */blockInfo.size() < deleteIfBelowThisSize) {
 			try {
 				dataNode.getRemoteStub().getBlock(blockInfo.blockID).delete();
 			} catch (RemoteException e) {
@@ -100,13 +103,14 @@ public class BlockImage implements RemoteNameNodeBlock {
 	public void replicateAndDeleteAsNeccessary() {
 		int overflow = getOverflow();
 		if (overflow > 0) {
-			LOGGER.info(this+" has "+overflow+" replicas in excess, deleting some");
+			LOGGER.info(this+" over replicated by "+overflow+", deleting");
 			for (DataNodeImage dataNode : new LinkedList<>(dataNodes)) {
 				dataNode.blockLost(this);
 				try {
 					dataNode.getRemoteStub().getBlock(blockID).delete();
 				} catch (RemoteException | BlockNotFoundException e) {
 					LOGGER.error(this+" failed to delete from "+dataNode);
+					System.err.println(e.getMessage());
 				}
 				dataNodes.remove(dataNode);
 				if (getOverflow() <= 0)
@@ -117,7 +121,7 @@ public class BlockImage implements RemoteNameNodeBlock {
 			if (dataNodes.size() == 0)
 				LOGGER.info(this+" no connected DataNodes have this block");
 			else {
-				LinkedList<RemoteDataNode> newDataNodes = nameNode.getAppropriateDataNodes(this, -overflow);
+				LinkedList<RemoteDataNode> newDataNodes = nameNode.getAppropriateDataNodes(dataNodes, -overflow);
 				if (newDataNodes.size() == 0) {
 					LOGGER.info(this+" under replicated by "+-overflow+", but no new DataNodes found");
 				}

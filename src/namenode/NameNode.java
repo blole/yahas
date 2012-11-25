@@ -6,6 +6,8 @@ import java.nio.file.NotDirectoryException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteServer;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -93,7 +95,7 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 
 	@Override
 	public RemoteDir getDir(String path) throws NotDirectoryException, NoSuchFileOrDirectoryException {
-		NameNodeDir dir = root.getDir(path, false);
+		NameNodeDir dir = root.getLocalDir(path, false);
 		LOGGER.debug(dir+" served");
 		return dir.getStub();
 	}
@@ -108,11 +110,15 @@ public class NameNode extends RemoteServer implements RemoteNameNode {
 		return dataNodeIdCounter++;
 	}
 
-	public LinkedList<RemoteDataNode> getAppropriateDataNodes(BlockImage block, int replicationFactor) {
+	public LinkedList<RemoteDataNode> getAppropriateDataNodes(int replicationFactor) {
+		return getAppropriateDataNodes(new ArrayList<DataNodeImage>(0), replicationFactor);
+	}
+
+	public LinkedList<RemoteDataNode> getAppropriateDataNodes(Collection<DataNodeImage> excludedDataNodes, int replicationFactor) {
 		// TODO return APPROPRIATE DataNodes, not replicationFactor many
 		LinkedList<RemoteDataNode> list = new LinkedList<>();
 		for (DataNodeImage dataNode : connectedDataNodes.values()) {
-			if (!block.dataNodes.contains(dataNode)) {
+			if (!excludedDataNodes.contains(dataNode)) {
 				list.add(dataNode.getRemoteStub());
 				if (list.size() >= replicationFactor)
 					break;

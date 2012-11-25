@@ -38,6 +38,7 @@ public class NameNodeFile extends NameNodeFileOrDir implements RemoteFile {
 	private ClientFile yahasFile;
 	private int blockSize;
 	private boolean isOpen;
+	private RemoteFile stub;
 
 
 
@@ -51,6 +52,7 @@ public class NameNodeFile extends NameNodeFileOrDir implements RemoteFile {
 		this.isOpen = false;
 				
 		try {
+			this.stub = (RemoteFile) RMIHelper.getStub(this); 
 			this.yahasFile = new ClientFile(this);
 		} catch (RemoteException e) {
 			LOGGER.error("Error creating file "+name, e);
@@ -148,7 +150,7 @@ public class NameNodeFile extends NameNodeFileOrDir implements RemoteFile {
 		return yahasFile;
 	}
 	
-	public RemoteFile getStub() throws RemoteException {
-		return (RemoteFile) RMIHelper.getStub(this);
+	public RemoteFile getStub() {
+		return stub;
 	}
 }

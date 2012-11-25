@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
@@ -43,7 +44,7 @@ public class DataNodeImage {
 	}
 	public void disconnected() {
 		LOGGER.info(this+" disconnected");
-		for (BlockInfo block : blocks.values())
+		for (BlockInfo block : new ArrayList<>(blocks.values()))
 			blockLost(nameNode.getBlock(block.blockID));
 	}
 	

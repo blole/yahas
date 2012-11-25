@@ -42,7 +42,7 @@ public class ClientBlock implements Serializable {
 	
 	public int write(byte[] data, int from, int to) throws RemoteException, AllDataNodesAreDeadException {
 		WriteInfo writeInfo = remoteNameNodeBlock.initiateWrite(to-from);
-		byte[] dataPortion = Arrays.copyOfRange(data, from, writeInfo.reservedBytes);
+		byte[] dataPortion = Arrays.copyOfRange(data, from, from+writeInfo.reservedBytes);
 		if (!ReplicationHelper.write(dataPortion, blockID, writeInfo.remoteDataNodes))
 			throw new AllDataNodesAreDeadException();
 		else

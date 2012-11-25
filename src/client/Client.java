@@ -11,8 +11,6 @@ import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
-import org.apache.log4j.Logger;
-
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import common.RMIHelper;
@@ -28,9 +26,6 @@ import common.protocols.RemoteFileOrDir;
 import common.protocols.RemoteFileOrDir.Type;
 
 public class Client {
-	private static final Logger LOGGER = Logger.getLogger(Client.class
-			.getCanonicalName());
-
 	ClientNameNodeProtocol nameNode = null;
 
 	static RemoteDir pwd = null;
@@ -40,15 +35,11 @@ public class Client {
 		this.nameNode = nameNode;
 	}
 
-	public void createFile(String fileName, int repFactor, byte[] contents) {
-		try (ClientFile file = nameNode.createFile(fileName, (byte) repFactor,
+	public void createFile(String filePath, int repFactor, byte[] contents) {
+		try (ClientFile file = nameNode.createFile(new File(filePath).getName(), (byte) repFactor,
 				65536)) {
 			file.open();
 			file.write(contents);
-			LOGGER.debug("File " + fileName + " created Successfully");
-			debugPrintNamespace("", nameNode.getDir("/"));
-
-			System.out.printf("\nread: '%s'\n", new String(file.read()));
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (FileOrDirectoryAlreadyExistsException e) {
@@ -94,7 +85,7 @@ public class Client {
 	public void move(String srcPath, String pathName) {
 
 		try {
-			RemoteFileOrDir fileOrDir = pwd.get(srcPath, false);
+			RemoteFileOrDir fileOrDir = pwd.getRemote(srcPath, false);
 
 			if (pathName.startsWith("/")) {
 				fileOrDir.move(pathName);
@@ -118,14 +109,11 @@ public class Client {
 	 */
 	public void delete(String pathName, boolean mode) {
 		try {
-
-			RemoteFileOrDir fileOrDir = pwd.get(pathName, false);
+			RemoteFileOrDir fileOrDir = pwd.getRemote(pathName, false);
 			if (fileOrDir.getType() == Type.File) {
-				ClientFile fileToDelete = nameNode.getFile(pathName);
-				fileToDelete.delete();
+				pwd.getRemoteFile(pathName).delete();
 			} else if (fileOrDir.getType() == Type.Directory) {
-				RemoteDir dir = nameNode.getDir(pathName);
-				dir.delete(mode);
+				pwd.getDir(pathName).delete(mode);
 			}
 
 		} catch (NotDirectoryException | RemoteException
@@ -142,23 +130,6 @@ public class Client {
 		}
 	}
 
-	public void printDirContent(String dirName) {
-		try {
-			RemoteDir dir = nameNode.getDir(dirName);
-			for (RemoteDir subDir : dir.getSubDirs()) {
-				LOGGER.debug("*" + subDir.getPath());
-			}
-			for (ClientFile file : dir.getFiles()) {
-				LOGGER.debug("-" + file.getName());
-			}
-		} catch (RemoteException | NotDirectoryException
-				| NoSuchFileOrDirectoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
 	public void debugPrintNamespace(String prefix, RemoteDir dir)
 			throws RemoteException {
 		
@@ -170,17 +141,16 @@ public class Client {
 	}
 
 	public void listDirectory(String path) throws RemoteException {
-		RemoteDir dir;
 		try {
-			dir = nameNode.getDir(path);
-			// System.out.println(dir.getPath());
+			RemoteDir dir = nameNode.getDir(path);
 			for (RemoteDir subDir : dir.getSubDirs()) {
-				LOGGER.debug("*" + subDir.getName());
+				System.out.println("\033[1;34m" + subDir.getName()+"\033[0m");
 			}
 			for (ClientFile file : dir.getFiles()) {
-				LOGGER.debug("-" + file.getName());
+				System.out.println(file.getName());
 			}
-		} catch (NotDirectoryException | NoSuchFileOrDirectoryException e) {
+		} catch (RemoteException | NotDirectoryException
+				| NoSuchFileOrDirectoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -189,11 +159,7 @@ public class Client {
 
 	public void displayBanner() {
 		try {
-			String content = Files
-					.toString(
-							new File(
-									"/home/govind/PhD/Lecture/SWEng/Project/Code/YAHAS3/src/Banner"),
-							Charsets.UTF_8);
+			String content = Files.toString(new File("../misc/banner"), Charsets.UTF_8);
 			System.out.println(content);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -203,11 +169,7 @@ public class Client {
 
 	public void displayHelp() {
 		try {
-			String content = Files
-					.toString(
-							new File(
-									"/home/govind/PhD/Lecture/SWEng/Project/Code/YAHAS3/src/Help"),
-							Charsets.UTF_8);
+			String content = Files.toString(new File("../misc/help"), Charsets.UTF_8);
 			System.out.println(content);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -216,9 +178,11 @@ public class Client {
 	}
 
 	public void putFile(String pathName, int repFactor) {
+		pathName = pathName.trim();
+		File file = new File(pathName);
 		try {
-			String content = Files.toString(new File(pathName), Charsets.UTF_8);
-			createFile(pathName, repFactor, content.getBytes());
+			byte fileContents[] = Files.toByteArray(file);
+			createFile(pathName, repFactor, fileContents);
 		} catch (IOException e) {
 			System.out.println("Local File Not Found");
 			e.printStackTrace();
@@ -228,19 +192,9 @@ public class Client {
 	public void operations(Client client) {
 
 		try {
-			rootDir = client.nameNode.getDir("");
-			pwd = rootDir;
-			client.createFile("/world", 2, "file data at ROOT".getBytes());
-			client.createDir("/dir1/");
-			client.createFile("/dir1/world", 2,
-					"file data inside dir1".getBytes());
-			client.createDir("/dir2/");
-			client.createDir("/dir3/");
-			// client.printDirContent("dir1");
-			client.debugPrintNamespace("", rootDir);
+			pwd = rootDir = client.nameNode.getDir("");
 		} catch (RemoteException | NotDirectoryException
 				| NoSuchFileOrDirectoryException e) {
-
 			e.printStackTrace();
 		}
 
@@ -249,14 +203,13 @@ public class Client {
 	public static String readLineFromConsole() throws InputMismatchException {
 		Scanner in = new Scanner(System.in);
 		String str;
-		System.out.print(">");
+		System.out.print("> ");
 		str = in.nextLine();
 		// in.close();
 		return str;
 	}
 
 	public static void main(String args[]) {
-		LOGGER.info("Connecting to NameNode......");
 		String host = "localhost";
 		String nameNodeAddress = "//" + host + "/NameNode";
 		RMIHelper.maybeStartSecurityManager();
@@ -267,15 +220,15 @@ public class Client {
 
 		while (true) {
 
-			String command = readLineFromConsole();
+			String command = readLineFromConsole().trim();
 
-			if (command.contains("ls")) {
+			if (command.startsWith("ls")) {
 				try {
 					client.listDirectory(pwd.getPath());
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				}
-			} else if (command.contains("tree")) {
+			} else if (command.startsWith("tree")) {
 				try {
 					System.out.println("Printing Name Space of YAHAS");
 					client.debugPrintNamespace("", pwd);
@@ -283,7 +236,7 @@ public class Client {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			} else if (command.contains("pwd")) {
+			} else if (command.startsWith("pwd")) {
 				try {
 					if (pwd.getPath().equals("")) {
 						System.out.println("/");
@@ -293,27 +246,16 @@ public class Client {
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				}
-			} else if (command.contains(("mkdir"))) {
-				if (command.contains("-")) {
-					// String dirName = command.split("-")[1];
-					List<String> parameters = Arrays.asList(command.split("-"));
-					System.out.println(parameters);
-					System.out.println("Creating Directory "
-							+ parameters.get(parameters.size() - 1));
-					// TODO::Check for Absolute or Relative Path
-					client.createDir(parameters.get(parameters.size() - 1));
-				} else {
-					LOGGER.error("Incorrect Command Format");
-				}
-			} else if (command.contains(("cd"))) {
+			} else if (command.startsWith(("mkdir"))) {
+				List<String> parameters = Arrays.asList(command.split(" +"));
+				client.createDir(parameters.get(parameters.size() - 1));
+			} else if (command.startsWith(("cd"))) {
 
-				List<String> parameters = Arrays.asList(command.split("-"));
+				List<String> parameters = Arrays.asList(command.split(" +"));
 				if (parameters.size() <= 1) {
 					System.out.println("Incorrect Command Format");
 					continue;
 				}
-				System.out.println("Changing directory to -->"
-						+ parameters.get(parameters.size() - 1));
 				try {
 					if (parameters.get(parameters.size() - 1).startsWith("/")) {
 						pwd = client.nameNode.getDir(parameters.get(parameters
@@ -322,49 +264,39 @@ public class Client {
 						pwd = client.nameNode.getDir(pwd.getPath() + "/"
 								+ parameters.get(parameters.size() - 1));
 					}
-
-					System.out.println("Changed path to " + pwd.getPath());
 				} catch (NotDirectoryException | RemoteException
 						| NoSuchFileOrDirectoryException e) {
 
 					e.printStackTrace();
 				}
-			} else if (command.contains("mv")) {
-				List<String> parameters = Arrays.asList(command.split("-"));
-				if (parameters.size() <= 2) {
+			} else if (command.startsWith("mv")) {
+				List<String> parameters = Arrays.asList(command.split(" +"));
+				if (parameters.size() != 3) {
 					System.out.println("Incorrect Command Format !!");
 					continue;
 				}
-				LOGGER.debug("Moving Directory to "
-						+ parameters.get(parameters.size() - 1));
 				try {
-					client.move(pwd.getPath(),
-							parameters.get(parameters.size() - 1));
-
+					client.move(pwd.getPath()+"/"+parameters.get(1), parameters.get(2));
 				} catch (RemoteException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.err.println("error");
 				}
-			}
-
-			else if (command.contains("rm")) {
-				List<String> parameters = Arrays.asList(command.split("-"));
+				
+			} else if (command.startsWith("rm")) {
+				List<String> parameters = Arrays.asList(command.split(" +"));
 				if (parameters.size() <= 1) {
 					System.out.println("Incorrect Command Format !!");
 					continue;
 				}
-				LOGGER.debug("Removing directory "
-						+ parameters.get(parameters.size() - 1));
-				if (parameters.get(1).equals("f") && parameters.size() == 3) {
+				if (parameters.get(1).equals("-f") && parameters.size() == 3) {
 					client.delete(parameters.get(parameters.size() - 1), true);
 				} else {
 					client.delete(parameters.get(parameters.size() - 1), false);
 				}
 			}
 
-			else if (command.contains("put")) {
-				List<String> parameters = Arrays.asList(command.split("-"));
-				LOGGER.debug("Creating File "
+			else if (command.startsWith("put")) {
+				List<String> parameters = Arrays.asList(command.split(" +"));
+				System.out.println("Creating File "
 						+ parameters.get(parameters.size() - 2)
 						+ " with rep factor of "
 						+ parameters.get(parameters.size() - 1));
@@ -378,12 +310,16 @@ public class Client {
 				}
 
 			}
-
-			else if (command.contains("help")) {
+			else if (command.startsWith("cat")) {
+				List<String> parameters = Arrays.asList(command.split(" +"));
+				System.out.println(client.readFile(parameters.get(parameters.size() - 1)));
+			}
+			else if (command.startsWith("help")) {
 				client.displayHelp();
-			} else if (command.contains("quit")) {
+			} else if (command.startsWith("quit")) {
 				System.out.println("Bye !!");
 				return;
+			} else if (command.equals("")) {
 			} else {
 				System.out.println("Command Not Found");
 			}
